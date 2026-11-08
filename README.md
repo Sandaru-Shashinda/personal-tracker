@@ -12,6 +12,9 @@ Built with Next.js (App Router), Neon Postgres + Drizzle ORM, and Tailwind CSS. 
   streaks, completion rates, a clickable month calendar for editing history, a by-weekday chart and notes.
 - **Tasks**: priority, due dates, subtasks, categories, tags, push reminders at a set date/time,
   filters (today / overdue / upcoming / no date / completed), search, sort, grouping by due bucket.
+- **Reminders**: birthdays, anniversaries, events, meetings and bills; all-day or timed; repeat daily /
+  weekly / monthly / yearly; push alerts (at the time, minutes, hours, days or a week before); an upcoming
+  list with ages ("Turns 30") and a swipeable month calendar. The next week shows on Today under "Coming up".
 - **Journal**: daily entry with mood, energy and tags, autosave, mood-colored month calendar, search, writing streak.
 - **Dashboard**: today's progress, 30-day completion with delta, best active streak, tasks this week,
   average mood, a year-long consistency heatmap, completion trend (30 days / 12 weeks / 12 months),
@@ -19,7 +22,7 @@ Built with Next.js (App Router), Neon Postgres + Drizzle ORM, and Tailwind CSS. 
   and auto-generated insights (best/worst weekday, most consistent / most skipped habit, trend, mood vs habits).
 - **Accounts**: email + password (bcrypt), signed HTTP-only session cookie, change password, delete account.
 - **PWA**: installable on phone home screens, dark/light/system theme, offline fallback page.
-- **Notifications**: Web Push for habit reminders and task reminders.
+- **Notifications**: Web Push for habit reminders, task reminders and reminder alerts.
 - **Export**: everything as JSON, or habit check-ins / habits / tasks / journal as CSV.
 
 ## Local setup

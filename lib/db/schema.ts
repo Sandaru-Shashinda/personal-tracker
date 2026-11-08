@@ -314,6 +314,30 @@ export const goalMilestones = pgTable(
   (t) => [index("goal_milestones_goal_idx").on(t.goalId)],
 );
 
+// --- Reminders (birthdays, events, meetings…) ---------------------------------------------------
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    title: text("title").notNull(),
+    kind: text("kind").notNull().default("event"), // birthday | anniversary | event | meeting | bill | other
+    /** First (or only) occurrence. For birthdays this is the birth date, so ages can be shown. */
+    date: date("date").notNull(),
+    /** "HH:MM" local time, or null for an all-day reminder. */
+    time: text("time"),
+    repeat: text("repeat").notNull().default("none"), // none | daily | weekly | monthly | yearly
+    location: text("location"),
+    notes: text("notes"),
+    /** Push alert this many minutes before the start (all-day items start at 09:00). Null = no alert. */
+    alertMinutes: integer("alert_minutes"),
+    /** The occurrence date (YYYY-MM-DD) the latest alert was sent for, so each occurrence alerts once. */
+    lastAlertedFor: date("last_alerted_for"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("reminders_user_idx").on(t.userId)],
+);
+
 export const usersRelations = relations(users, ({ many }) => ({
   habits: many(habits),
   tasks: many(tasks),
@@ -344,3 +368,4 @@ export type Expense = typeof expenses.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalMilestone = typeof goalMilestones.$inferSelect;
+export type Reminder = typeof reminders.$inferSelect;

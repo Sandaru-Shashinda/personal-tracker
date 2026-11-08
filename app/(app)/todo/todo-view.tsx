@@ -341,10 +341,10 @@ function ItemRow({ item, color, apply }: { item: TodoItem; color: string; apply:
         </span>
       )}
       {!editing && !temp && (
-        <span className="flex opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        <span className="flex shrink-0 can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:focus-within:opacity-100">
           <button
             onClick={() => setEditing(true)}
-            className="rounded-md p-1 text-text-3 hover:bg-surface-2 hover:text-text"
+            className="flex size-9 items-center justify-center rounded-md text-text-3 hover:bg-surface-2 hover:text-text active:bg-surface-2 can-hover:size-7"
             aria-label={`Edit "${item.text}"`}
           >
             <Pencil className="size-3.5" />
@@ -356,7 +356,7 @@ function ItemRow({ item, color, apply }: { item: TodoItem; color: string; apply:
                 await deleteItem(item.id);
               })
             }
-            className="rounded-md p-1 text-text-3 hover:bg-surface-2 hover:text-bad"
+            className="flex size-9 items-center justify-center rounded-md text-text-3 hover:bg-surface-2 hover:text-bad active:bg-surface-2 can-hover:size-7"
             aria-label={`Delete "${item.text}"`}
           >
             <Trash2 className="size-3.5" />

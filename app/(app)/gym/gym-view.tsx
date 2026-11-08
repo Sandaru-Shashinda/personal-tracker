@@ -65,7 +65,7 @@ export function GymView({
         title="Gym"
         sub={trainedToday ? "Nice work, you trained today 💪" : "Log your workout and track your strength"}
         action={
-          <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5 text-sm" role="tablist">
+          <div className="flex w-full rounded-xl border border-border bg-surface-2 p-1 text-sm sm:inline-flex sm:w-auto sm:rounded-lg sm:p-0.5" role="tablist">
             {(
               [
                 ["workout", "Workout"],
@@ -78,7 +78,7 @@ export function GymView({
                 role="tab"
                 aria-selected={tab === k}
                 onClick={() => setTab(k)}
-                className={cn("rounded-md px-3 py-1.5", tab === k ? "bg-surface font-medium shadow-sm" : "text-text-2")}
+                className={cn("flex-1 rounded-lg px-3 py-2 sm:flex-none sm:rounded-md sm:py-1.5", tab === k ? "bg-surface font-medium shadow-sm" : "text-text-2")}
               >
                 {label}
               </button>

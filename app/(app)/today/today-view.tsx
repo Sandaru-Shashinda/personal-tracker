@@ -6,14 +6,16 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { HabitForm } from "@/components/habit-form";
 import { HabitRow } from "@/components/habit-row";
+import { ReminderRow } from "@/components/reminder-row";
 import { EnergyPicker, MoodPicker } from "@/components/mood";
 import { TaskRow } from "@/components/task-row";
 import { useToast } from "@/components/toast";
-import { Button, Card, CardTitle, Empty, Modal, Textarea } from "@/components/ui";
+import { Button, Card, CardTitle, cn, Empty, Modal, Textarea } from "@/components/ui";
 import { saveJournalEntry } from "@/lib/actions/journal";
 import { createTask } from "@/lib/actions/tasks";
-import { addDays, prettyDay } from "@/lib/dates";
-import type { Category, Task } from "@/lib/db/schema";
+import { WEEKDAY_SHORT, addDays, dayOfWeek, prettyDay } from "@/lib/dates";
+import type { Category, Reminder, Task } from "@/lib/db/schema";
+import { occurrencesBetween } from "@/lib/reminder-schedule";
 import type { HabitDayView } from "@/lib/view";
 
 export function TodayView({
@@ -24,6 +26,7 @@ export function TodayView({
   notes,
   categories,
   tasks,
+  reminders,
   entry,
 }: {
   date: string;
@@ -33,6 +36,7 @@ export function TodayView({
   notes: Record<string, string>;
   categories: Category[];
   tasks: Task[];
+  reminders: Reminder[];
   entry: { mood: number | null; energy: number | null; content: string } | null;
 }) {
   const router = useRouter();
@@ -53,6 +57,11 @@ export function TodayView({
   const doneCount = due.filter((v) => v.done).length;
   const pct = due.length ? doneCount / due.length : 0;
   const isToday = date === today;
+  // Reminders on this day and the next 6, soonest first.
+  const comingUp = reminders
+    .flatMap((r) => occurrencesBetween(r, date, addDays(date, 6)).slice(0, 1).map((occ) => ({ r, occ })))
+    .sort((a, b) => a.occ.localeCompare(b.occ) || (a.r.time ?? "").localeCompare(b.r.time ?? ""))
+    .slice(0, 5);
 
   const go = (d: string) => router.push(d === today ? "/today" : `/today?date=${d}`);
 
@@ -72,38 +81,40 @@ export function TodayView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-text-3" suppressHydrationWarning>
-            {isToday ? `${greeting}, ${name.split(" ")[0]}` : "Looking back"}
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {isToday ? "Today" : prettyDay(date, { weekday: "long" })}
-            <span className="ml-2 text-base font-normal text-text-3">
-              {prettyDay(date, { weekday: isToday ? "long" : undefined, year: "numeric" })}
-            </span>
-          </h1>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="secondary" size="icon" onClick={() => go(addDays(date, -1))} aria-label="Previous day">
-            <ChevronLeft className="size-4" />
-          </Button>
-          {!isToday && (
-            <Button variant="secondary" size="sm" onClick={() => go(today)}>
-              Today
+      <header className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-text-3" suppressHydrationWarning>
+              {isToday ? `${greeting}, ${name.split(" ")[0]}` : "Looking back"}
+            </p>
+            <h1 className="text-[28px] leading-tight font-bold tracking-tight sm:text-3xl sm:font-semibold">
+              {isToday ? "Today" : prettyDay(date, { weekday: "long" }).split(",")[0]}
+            </h1>
+            <p className="text-sm text-text-3">{prettyDay(date, { weekday: "long", year: "numeric" })}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {!isToday && (
+              <Button variant="secondary" size="sm" onClick={() => go(today)}>
+                Today
+              </Button>
+            )}
+            <Button variant="secondary" size="icon" onClick={() => go(addDays(date, -1))} aria-label="Previous day" className="max-sm:hidden">
+              <ChevronLeft className="size-4" />
             </Button>
-          )}
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={() => go(addDays(date, 1))}
-            disabled={isToday}
-            aria-label="Next day"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => go(addDays(date, 1))}
+              disabled={isToday}
+              aria-label="Next day"
+              className="max-sm:hidden"
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+        <WeekStrip date={date} today={today} onPick={go} />
+      </header>
 
       {/* progress summary */}
       <Card className="flex items-center gap-5">
@@ -180,6 +191,23 @@ export function TodayView({
         </section>
 
         <div className="space-y-6">
+          {comingUp.length > 0 && (
+            <Card className="p-0 sm:p-0">
+              <div className="flex items-center justify-between px-4 pt-4 pb-1">
+                <h2 className="font-semibold">Coming up</h2>
+                <Link href="/reminders" className="text-sm text-accent hover:underline">
+                  All reminders
+                </Link>
+              </div>
+              <div className="divide-y divide-border px-1 pb-1">
+                {comingUp.map(({ r, occ }) => (
+                  <Link key={r.id} href={`/reminders?date=${occ}`} className="block">
+                    <ReminderRow reminder={r} occ={occ} today={today} />
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
           <Card className="p-0 sm:p-0">
             <div className="flex items-center justify-between px-4 pb-2 pt-4">
               <h2 className="font-semibold">Tasks</h2>
@@ -204,13 +232,13 @@ export function TodayView({
                 value={quick}
                 onChange={(e) => setQuick(e.target.value)}
                 placeholder="Quick add a task for this day…"
-                className="h-9 flex-1 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none placeholder:text-text-3 focus:border-accent"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none placeholder:text-text-3 focus:border-accent sm:h-9"
               />
               <Button type="submit" size="icon" variant="primary" aria-label="Add task">
                 <Plus className="size-4" />
               </Button>
             </form>
-            <div className="divide-y divide-border pb-1">
+            <div className="divide-y divide-border px-1 pb-1">
               {tasks.length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-text-3">Nothing due. Enjoy the free time.</p>
               ) : (
@@ -276,6 +304,53 @@ export function TodayView({
       <Modal open={habitOpen} onClose={() => setHabitOpen(false)} title="New habit" wide>
         <HabitForm categories={categories} onDone={() => setHabitOpen(false)} />
       </Modal>
+    </div>
+  );
+}
+
+/** A week of days to jump between with one tap. Ends on today, or a few days after the selected day. */
+function WeekStrip({ date, today, onPick }: { date: string; today: string; onPick: (d: string) => void }) {
+  const ahead = addDays(date, 3);
+  const end = ahead > today ? today : ahead;
+  const days = Array.from({ length: 7 }, (_, i) => addDays(end, i - 6));
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onPick(addDays(days[0], -1))}
+        aria-label="Earlier days"
+        className="flex h-14 w-7 shrink-0 items-center justify-center rounded-lg text-text-3 active:bg-surface-2 sm:hidden"
+      >
+        <ChevronLeft className="size-4" aria-hidden />
+      </button>
+      <div className="grid flex-1 grid-cols-7 gap-1 sm:max-w-md" role="tablist" aria-label="Pick a day">
+        {days.map((d) => {
+          const sel = d === date;
+          return (
+            <button
+              key={d}
+              type="button"
+              role="tab"
+              aria-selected={sel}
+              aria-label={prettyDay(d, { weekday: "long" })}
+              onClick={() => !sel && onPick(d)}
+              className={cn(
+                "flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl border transition-colors",
+                sel ? "border-transparent bg-accent text-accent-fg" : "border-border bg-surface text-text active:bg-surface-2",
+              )}
+            >
+              <span className={cn("text-[11px] font-medium", sel ? "text-accent-fg/80" : "text-text-3")}>
+                {WEEKDAY_SHORT[dayOfWeek(d)].slice(0, 2)}
+              </span>
+              <span className="tabular text-base leading-none font-semibold">{Number(d.slice(8))}</span>
+              <span
+                className={cn("size-1 rounded-full", d === today ? (sel ? "bg-accent-fg" : "bg-accent") : "bg-transparent")}
+                aria-hidden
+              />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

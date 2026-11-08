@@ -1,7 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
-import { forwardRef, useEffect, useRef } from "react";
+import { Plus, X } from "lucide-react";
+import { forwardRef, useEffect, useId, useRef } from "react";
 
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -20,10 +20,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        size === "sm" && "h-8 px-3 text-sm",
-        size === "md" && "h-10 px-4 text-sm",
-        size === "icon" && "size-9",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium transition-[color,background-color,border-color,transform] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        size === "sm" && "h-9 px-3 text-sm sm:h-8",
+        size === "md" && "h-11 px-4 text-sm sm:h-10",
+        size === "icon" && "size-10 sm:size-9",
         variant === "primary" && "bg-accent text-accent-fg hover:brightness-110",
         variant === "secondary" && "border border-border bg-surface text-text hover:bg-surface-2",
         variant === "ghost" && "text-text-2 hover:bg-surface-2 hover:text-text",
@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
     <input
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text placeholder:text-text-3 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
+        "h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text placeholder:text-text-3 sm:h-10 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
         className,
       )}
       {...props}
@@ -70,7 +70,7 @@ export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLS
   return (
     <select
       className={cn(
-        "h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
+        "h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text sm:h-10 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
         className,
       )}
       {...props}
@@ -120,35 +120,101 @@ export function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const { ref, handlers: swipe } = useSwipeToClose<HTMLDialogElement>(onClose);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      // Clear any offset left over from a swipe-to-close.
+      d.style.transform = "";
+      d.style.transition = "";
+      d.showModal();
+    }
     if (!open && d.open) d.close();
-  }, [open]);
+  }, [open, ref]);
   return (
     <dialog
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
+      aria-labelledby={titleId}
       className={cn(
-        "m-auto max-h-[92dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-border bg-surface p-0 text-text shadow-2xl",
-        wide ? "max-w-2xl" : "max-w-lg",
+        // Phones: a full-width bottom sheet. Larger screens: a centered card.
+        "sheet m-auto max-h-none w-[calc(100%-2rem)] overflow-hidden rounded-2xl border border-border bg-surface p-0 text-text shadow-2xl",
+        "max-sm:mb-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0",
+        wide ? "sm:max-w-2xl" : "sm:max-w-lg",
       )}
     >
       {open && (
-        <div className="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-              <X className="size-4" />
-            </Button>
+        <div className="flex max-h-[92dvh] flex-col sm:max-h-[90dvh]">
+          <div className="shrink-0 px-5 pt-2 max-sm:touch-none sm:pt-5" {...swipe}>
+            <div className="mx-auto mb-1.5 h-1.5 w-10 rounded-full bg-border sm:hidden" aria-hidden />
+            <div className="flex items-center justify-between gap-3 pb-3">
+              <h2 id={titleId} className="min-w-0 truncate text-lg font-semibold">
+                {title}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close" className="-mr-2">
+                <X className="size-5" />
+              </Button>
+            </div>
           </div>
-          {children}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+            {children}
+          </div>
         </div>
       )}
     </dialog>
+  );
+}
+
+/**
+ * Drag a bottom sheet down by its header to dismiss it. Attach `ref` to the element that moves and
+ * spread `handlers` on the drag area.
+ */
+export function useSwipeToClose<T extends HTMLElement>(onClose: () => void) {
+  const ref = useRef<T>(null);
+  const startY = useRef<number | null>(null);
+  const dy = useRef(0);
+  const handlers = {
+    onTouchStart(e: React.TouchEvent) {
+      startY.current = e.touches[0].clientY;
+      dy.current = 0;
+      const el = ref.current;
+      if (el) el.style.transition = "none";
+    },
+    onTouchMove(e: React.TouchEvent) {
+      if (startY.current === null) return;
+      dy.current = Math.max(0, e.touches[0].clientY - startY.current);
+      const el = ref.current;
+      if (el) el.style.transform = dy.current ? `translateY(${dy.current}px)` : "";
+    },
+    onTouchEnd() {
+      if (startY.current === null) return;
+      startY.current = null;
+      const el = ref.current;
+      if (dy.current > 80) return onClose();
+      if (el) {
+        el.style.transition = "transform 200ms ease-out";
+        el.style.transform = "";
+      }
+    },
+  };
+  return { ref, handlers };
+}
+
+/** Floating "add" button for phones, sitting above the bottom tab bar in easy thumb reach. */
+export function Fab({ label, onClick, icon }: { label: string; onClick: () => void; icon?: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-lg shadow-black/25 transition-transform active:scale-95 md:hidden"
+    >
+      {icon ?? <Plus className="size-6" strokeWidth={2.5} aria-hidden />}
+    </button>
   );
 }
 

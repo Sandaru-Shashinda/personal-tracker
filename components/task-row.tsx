@@ -49,39 +49,47 @@ export function TaskRow({
     });
 
   return (
-    <div className="group flex items-start gap-3 px-3 py-2.5">
+    <div className="group flex items-start gap-1 py-1.5 pr-2 pl-1 sm:py-1">
+      {/* 40px hit area around a small visual checkbox */}
       <button
         type="button"
         role="checkbox"
         aria-checked={done}
         aria-label={`Mark "${task.title}" ${done ? "not done" : "done"}`}
         onClick={toggle}
-        className={cn(
-          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors",
-          done ? "border-accent bg-accent text-white" : "border-text-3 hover:border-accent",
-          !done && task.priority === 3 && "border-bad",
-          !done && task.priority === 2 && "border-warn",
-        )}
+        className="flex size-10 shrink-0 items-center justify-center rounded-full active:bg-surface-2"
       >
-        {done && <Check className="size-3.5" strokeWidth={3} aria-hidden />}
+        <span
+          className={cn(
+            "flex size-[22px] items-center justify-center rounded-md border-2 transition-colors sm:size-5",
+            done ? "border-accent bg-accent text-white" : "border-text-3",
+            !done && task.priority === 3 && "border-bad",
+            !done && task.priority === 2 && "border-warn",
+          )}
+        >
+          {done && <Check className="size-3.5" strokeWidth={3} aria-hidden />}
+        </span>
       </button>
-      <div className="min-w-0 flex-1">
+      {/* Tapping anywhere on the text opens the editor (the title button is the keyboard target). */}
+      <div className={cn("min-w-0 flex-1 py-2", onEdit && "cursor-pointer")} onClick={onEdit}>
         <div className="flex items-center gap-1.5">
           {onToggleExpand && subtasks.length > 0 && (
             <button
               type="button"
-              onClick={onToggleExpand}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
               aria-label={expanded ? "Hide subtasks" : "Show subtasks"}
-              className="text-text-3 hover:text-text"
+              className="-my-2 -ml-1 flex size-8 shrink-0 items-center justify-center text-text-3 hover:text-text"
             >
               <ChevronRight className={cn("size-4 transition-transform", expanded && "rotate-90")} aria-hidden />
             </button>
           )}
           <button
             type="button"
-            onClick={onEdit}
             disabled={!onEdit}
-            className={cn("truncate text-left text-sm", done && "text-text-3 line-through")}
+            className={cn("min-w-0 truncate text-left text-[15px] sm:text-sm", done && "text-text-3 line-through")}
           >
             {task.title}
           </button>
@@ -120,12 +128,12 @@ export function TaskRow({
         </div>
       </div>
       {!compact && (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        <div className="flex shrink-0 items-center gap-0.5 self-center can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:focus-within:opacity-100">
           {onAddSubtask && !task.parentId && (
             <button
               type="button"
               onClick={onAddSubtask}
-              className="flex size-8 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text"
+              className="flex size-10 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text active:bg-surface-2 sm:size-8"
               aria-label="Add subtask"
               title="Add subtask"
             >
@@ -136,7 +144,7 @@ export function TaskRow({
             <button
               type="button"
               onClick={onEdit}
-              className="flex size-8 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text"
+              className="hidden size-8 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text can-hover:flex"
               aria-label="Edit task"
             >
               <Pencil className="size-4" aria-hidden />
@@ -148,7 +156,7 @@ export function TaskRow({
               if (confirm(`Delete "${task.title}"${subtasks.length ? " and its subtasks" : ""}?`))
                 start(() => deleteTask(task.id));
             }}
-            className="flex size-8 items-center justify-center rounded-lg text-text-3 hover:bg-bad/10 hover:text-bad"
+            className="hidden size-8 items-center justify-center rounded-lg text-text-3 hover:bg-bad/10 hover:text-bad can-hover:flex"
             aria-label="Delete task"
           >
             <Trash2 className="size-4" aria-hidden />

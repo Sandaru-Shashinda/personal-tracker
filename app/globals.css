@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Devices with a real hover pointer (mouse/trackpad). Touch screens never match, so hover-revealed
+   controls stay visible there regardless of screen width. */
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
 
 :root {
   --bg: #f6f6f4;
@@ -82,6 +85,52 @@ body {
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* No double-tap-to-zoom delay, and no text-selection / callout when long-pressing controls. */
+a,
+button,
+label,
+summary,
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="checkbox"] {
+  touch-action: manipulation;
+}
+button,
+[role="tab"],
+[role="radio"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+nav a {
+  -webkit-touch-callout: none;
+}
+
+/* iOS zooms the page when focusing a field whose text is under 16px. Keep fields at 16px on phones. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Horizontal chip / tab rows: scroll by swipe without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Lock the page behind an open dialog / sheet. */
+html:has(dialog[open]),
+html:has([data-sheet-open]) {
+  overflow: hidden;
 }
 
 input,
@@ -110,6 +159,45 @@ select {
 
 dialog::backdrop {
   background: rgb(0 0 0 / 0.45);
+}
+
+/* Modals: a bottom sheet that slides up on phones, a centered card that fades in on larger screens. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+dialog[open].sheet {
+  animation: dialog-in 180ms ease-out;
+}
+dialog[open].sheet::backdrop {
+  animation: fade-in 200ms ease-out;
+}
+.sheet-panel {
+  animation: sheet-up 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.backdrop-in {
+  animation: fade-in 200ms ease-out;
+}
+@media (max-width: 639px) {
+  dialog[open].sheet {
+    animation: sheet-up 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog[open].sheet,
+  dialog[open].sheet::backdrop,
+  .sheet-panel,
+  .backdrop-in {
+    animation: none;
+  }
 }
 
 /* Exercise demo: crossfade between the start and end photos of a movement. */

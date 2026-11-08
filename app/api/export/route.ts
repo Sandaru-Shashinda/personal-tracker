@@ -9,6 +9,7 @@ import {
   expenses,
   goalMilestones,
   goals,
+  reminders,
   habitLogs,
   habits,
   journalEntries,
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const [sets, noteRows, lists, items, money, budgetRows, goalRows, milestones, profile, docs] = await Promise.all([
+  const [sets, noteRows, lists, items, money, budgetRows, goalRows, milestones, profile, docs, reminderRows] = await Promise.all([
     db.select().from(workoutSets).where(eq(workoutSets.userId, userId)),
     db.select().from(notes).where(eq(notes.userId, userId)),
     db.select().from(todoLists).where(eq(todoLists.userId, userId)),
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
       })
       .from(documents)
       .where(eq(documents.userId, userId)),
+    db.select().from(reminders).where(eq(reminders.userId, userId)),
   ]);
 
   const body = JSON.stringify(
@@ -129,6 +131,7 @@ export async function GET(req: NextRequest) {
       goalMilestones: milestones,
       personal: profile[0]?.data ?? null,
       documents: docs,
+      reminders: reminderRows,
     },
     null,
     2,

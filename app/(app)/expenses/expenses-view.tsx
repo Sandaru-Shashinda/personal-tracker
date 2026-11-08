@@ -5,7 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
-import { Button, Card, CardTitle, cn, Empty, Input, Label, Modal, Select } from "@/components/ui";
+import { Button, Card, CardTitle, cn, Empty, Input, Label, Modal, Select, Fab } from "@/components/ui";
 import { deleteExpense, saveExpense, setBudget, setCurrency } from "@/lib/actions/expenses";
 import { relativeDayLabel } from "@/lib/dates";
 import type { Budget, Expense } from "@/lib/db/schema";
@@ -126,7 +126,7 @@ export function ExpensesView({
             <Button onClick={() => setBudgetOpen(true)}>
               <Target className="size-4" /> Budgets
             </Button>
-            <Button variant="primary" onClick={() => setEditing("new")}>
+            <Button variant="primary" onClick={() => setEditing("new")} className="max-md:hidden">
               <Plus className="size-4" /> Add
             </Button>
           </div>
@@ -355,6 +355,7 @@ export function ExpensesView({
         </>
       )}
 
+      <Fab label="Add transaction" onClick={() => setEditing("new")} />
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing === "new" ? "Add transaction" : "Edit transaction"}>
         {editing && (
           <ExpenseForm

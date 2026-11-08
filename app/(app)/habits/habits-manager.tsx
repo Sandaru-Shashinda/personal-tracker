@@ -6,7 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 import { HabitForm } from "@/components/habit-form";
 import { Icon } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
-import { Button, cn, Empty, Input, Modal, Select } from "@/components/ui";
+import { Button, cn, Empty, Input, Modal, Select, Fab } from "@/components/ui";
 import { deleteHabit, reorderHabits, setHabitArchived } from "@/lib/actions/habits";
 import type { Category, Habit } from "@/lib/db/schema";
 import { frequencyLabel } from "@/lib/format";
@@ -49,7 +49,7 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
         title="Habits"
         sub={`${active.length} active · ${habits.length - active.length} archived`}
         action={
-          <Button variant="primary" onClick={() => setCreating(true)}>
+          <Button variant="primary" onClick={() => setCreating(true)} className="max-md:hidden">
             <Plus className="size-4" /> New habit
           </Button>
         }
@@ -61,17 +61,17 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={cn("rounded-md px-3 py-1 text-sm capitalize", tab === t ? "bg-surface font-medium shadow-sm" : "text-text-2")}
+              className={cn("rounded-md px-4 py-1.5 text-sm capitalize", tab === t ? "bg-surface font-medium shadow-sm" : "text-text-2")}
             >
               {t}
             </button>
           ))}
         </div>
-        <div className="relative min-w-40 flex-1 sm:max-w-xs">
+        <div className="relative min-w-40 flex-1 max-sm:order-first max-sm:basis-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search habits" className="pl-9" aria-label="Search habits" />
         </div>
-        <Select value={cat} onChange={(e) => setCat(e.target.value)} className="w-auto" aria-label="Filter by category">
+        <Select value={cat} onChange={(e) => setCat(e.target.value)} className="w-auto max-sm:flex-1" aria-label="Filter by category">
           <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -81,7 +81,7 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
           <option value="none">Uncategorised</option>
         </Select>
         {allTags.length > 0 && (
-          <Select value={tag} onChange={(e) => setTag(e.target.value)} className="w-auto" aria-label="Filter by tag">
+          <Select value={tag} onChange={(e) => setTag(e.target.value)} className="w-auto max-sm:flex-1" aria-label="Filter by tag">
             <option value="">All tags</option>
             {allTags.map((t) => (
               <option key={t} value={t}>
@@ -118,11 +118,11 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
                     </p>
                   </div>
                   {canReorder && (
-                    <div className="flex flex-col opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                      <button onClick={() => move(h.id, -1)} disabled={pos === 0} className="text-text-3 hover:text-text disabled:opacity-30" aria-label="Move up">
+                    <div className="-my-1 -mr-1 flex flex-col can-hover:opacity-0 can-hover:group-hover:opacity-100">
+                      <button onClick={() => move(h.id, -1)} disabled={pos === 0} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move up">
                         <ArrowUp className="size-4" />
                       </button>
-                      <button onClick={() => move(h.id, 1)} disabled={pos === active.length - 1} className="text-text-3 hover:text-text disabled:opacity-30" aria-label="Move down">
+                      <button onClick={() => move(h.id, 1)} disabled={pos === active.length - 1} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move down">
                         <ArrowDown className="size-4" />
                       </button>
                     </div>
@@ -191,6 +191,7 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
         </div>
       )}
 
+      <Fab label="New habit" onClick={() => setCreating(true)} />
       <Modal open={creating} onClose={() => setCreating(false)} title="New habit" wide>
         <HabitForm categories={categories} onDone={() => setCreating(false)} />
       </Modal>

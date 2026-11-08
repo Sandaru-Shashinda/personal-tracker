@@ -67,7 +67,7 @@ export function HabitRow({
           aria-hidden
         />
       )}
-      <div className="relative flex items-center gap-3 p-3">
+      <div className="relative flex items-center gap-2.5 p-3 sm:gap-3">
         <span
           className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ background: habit.color }}
@@ -119,8 +119,8 @@ export function HabitRow({
           type="button"
           onClick={() => setShowNote((s) => !s)}
           className={cn(
-            "flex size-8 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text",
-            !note && !showNote && "opacity-0 group-hover:opacity-100 focus:opacity-100 max-sm:opacity-100",
+            "flex size-9 shrink-0 items-center justify-center rounded-lg text-text-3 hover:bg-surface-2 hover:text-text active:bg-surface-2 sm:size-8",
+            !note && !showNote && "can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:focus:opacity-100",
           )}
           aria-label="Add note"
           title={note || "Add note"}
@@ -134,7 +134,7 @@ export function HabitRow({
               type="button"
               onClick={() => commit(value - step)}
               disabled={value <= 0}
-              className="flex size-9 items-center justify-center rounded-lg border border-border bg-surface hover:bg-surface-2 disabled:opacity-40"
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-surface hover:bg-surface-2 active:scale-95 disabled:opacity-40 sm:size-9 sm:rounded-lg"
               aria-label={`Decrease ${habit.title}`}
             >
               <Minus className="size-4" aria-hidden />
@@ -144,7 +144,7 @@ export function HabitRow({
               type="button"
               onClick={() => commit(value + step)}
               className={cn(
-                "flex size-9 items-center justify-center rounded-lg text-white",
+                "flex size-10 items-center justify-center rounded-xl text-white transition-transform active:scale-95 sm:size-9 sm:rounded-lg",
                 popKey > 0 && "animate-pop",
               )}
               style={{ background: habit.color }}
@@ -162,7 +162,7 @@ export function HabitRow({
             aria-label={`Mark ${habit.title} ${done ? "not done" : "done"}`}
             onClick={() => commit(done ? 0 : 1)}
             className={cn(
-              "flex size-10 items-center justify-center rounded-full border-2 transition-colors",
+              "flex size-11 shrink-0 items-center justify-center rounded-full border-2 transition-[color,background-color,border-color,transform] active:scale-90 sm:size-10",
               done ? "border-transparent text-white" : "border-border text-transparent hover:border-text-3",
               popKey > 0 && "animate-pop",
             )}
@@ -186,9 +186,9 @@ export function HabitRow({
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             placeholder="How did it go?"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-text-3"
+            className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-text-3"
           />
-          <button type="submit" className="text-sm font-medium text-accent">
+          <button type="submit" className="px-2 text-sm font-medium text-accent">
             Save
           </button>
         </form>

@@ -4,7 +4,7 @@ import { NotebookPen, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
-import { Button, cn, COLORS, Empty, Input, Modal, Textarea } from "@/components/ui";
+import { Button, cn, COLORS, Empty, Input, Modal, Textarea, Fab } from "@/components/ui";
 import { deleteNote, saveNote, setNotePinned } from "@/lib/actions/notes";
 import type { Note } from "@/lib/db/schema";
 
@@ -37,13 +37,13 @@ export function NotesView({ notes }: { notes: Note[] }) {
         title="Notes"
         sub={`${notes.length} note${notes.length === 1 ? "" : "s"}`}
         action={
-          <Button variant="primary" onClick={() => setDraft(blank)}>
+          <Button variant="primary" onClick={() => setDraft(blank)} className="max-md:hidden">
             <Plus className="size-4" /> New note
           </Button>
         }
       />
       {notes.length > 0 && (
-        <div className="relative mb-5 max-w-md">
+        <div className="relative mb-5 sm:max-w-md">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-3" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notes" className="pl-9" aria-label="Search notes" />
         </div>
@@ -71,6 +71,7 @@ export function NotesView({ notes }: { notes: Note[] }) {
         </div>
       )}
 
+      <Fab label="New note" onClick={() => setDraft(blank)} />
       <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Edit note" : "New note"} wide>
         {draft && <NoteEditor initial={draft} onDone={() => setDraft(null)} />}
       </Modal>
@@ -100,15 +101,15 @@ function Section({
             style={n.color ? { borderColor: `${n.color}66`, background: `color-mix(in srgb, ${n.color} 9%, var(--surface))` } : { borderColor: "var(--border)" }}
           >
             <button onClick={() => onOpen(n)} className="block w-full text-left" aria-label={`Open note ${n.title || "untitled"}`}>
-              {n.title && <h3 className="mb-1 pr-6 font-semibold">{n.title}</h3>}
+              {n.title && <h3 className="mb-1 pr-8 font-semibold">{n.title}</h3>}
               {n.content && <p className="line-clamp-[10] text-sm whitespace-pre-wrap text-text-2">{n.content}</p>}
               <p className="mt-2 text-xs text-text-3">{ago(n.updatedAt)}</p>
             </button>
             <button
               onClick={() => onPin(n)}
               className={cn(
-                "absolute top-3 right-3 rounded-md p-1 text-text-3 hover:bg-surface-2 hover:text-text",
-                !n.pinned && "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                "absolute top-2 right-2 flex size-9 items-center justify-center rounded-md text-text-3 hover:bg-surface-2 hover:text-text active:bg-surface-2",
+                !n.pinned && "can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:focus:opacity-100",
               )}
               aria-label={n.pinned ? "Unpin note" : "Pin note"}
             >

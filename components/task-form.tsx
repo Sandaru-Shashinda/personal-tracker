@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createTask, updateTask } from "@/lib/actions/tasks";
+import { Trash2 } from "lucide-react";
+import { createTask, deleteTask, updateTask } from "@/lib/actions/tasks";
 import type { Category, Task } from "@/lib/db/schema";
 import { useToast } from "./toast";
 import { Button, cn, Input, Label, Select, TagInput, Textarea } from "./ui";
@@ -94,7 +95,7 @@ export function TaskForm({
               type="button"
               onClick={() => setPriority(p.v)}
               aria-pressed={priority === p.v}
-              className={cn("rounded-md py-1.5 text-sm", priority === p.v ? `bg-surface font-medium shadow-sm ${p.cls}` : "text-text-2")}
+              className={cn("rounded-md py-2 text-sm sm:py-1.5", priority === p.v ? `bg-surface font-medium shadow-sm ${p.cls}` : "text-text-2")}
             >
               {p.label}
             </button>
@@ -116,7 +117,25 @@ export function TaskForm({
         <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </label>
       {error && <p className="rounded-lg bg-bad/10 px-3 py-2 text-sm text-bad">{error}</p>}
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-end gap-2">
+        {task && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="mr-auto text-bad hover:bg-bad/10 hover:text-bad"
+            disabled={pending}
+            onClick={() => {
+              if (!confirm(`Delete "${task.title}" and any subtasks?`)) return;
+              start(async () => {
+                await deleteTask(task.id);
+                toast("Task deleted");
+                onDone();
+              });
+            }}
+          >
+            <Trash2 className="size-4" /> Delete
+          </Button>
+        )}
         <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
         </Button>

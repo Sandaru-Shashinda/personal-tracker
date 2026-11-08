@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { TaskForm } from "@/components/task-form";
 import { TaskRow } from "@/components/task-row";
 import { useToast } from "@/components/toast";
-import { Button, cn, Empty, Input, Modal, Select } from "@/components/ui";
+import { Button, cn, Empty, Fab, Input, Modal, Select } from "@/components/ui";
 import { clearCompletedTasks, createTask } from "@/lib/actions/tasks";
 import { addDays } from "@/lib/dates";
 import type { Category, Task } from "@/lib/db/schema";
@@ -116,7 +116,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
         title="Tasks"
         sub={`${counts.all} open${counts.overdue ? ` · ${counts.overdue} overdue` : ""}`}
         action={
-          <Button variant="primary" onClick={() => setCreating({})}>
+          <Button variant="primary" onClick={() => setCreating({})} className="max-md:hidden">
             <Plus className="size-4" /> New task
           </Button>
         }
@@ -146,7 +146,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
         </Button>
       </form>
 
-      <div className="mb-3 flex gap-1 overflow-x-auto pb-1" role="tablist">
+      <div className="no-scrollbar -mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="tablist">
         {FILTERS.map((f) => (
           <button
             key={f.k}
@@ -154,8 +154,10 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
             aria-selected={filter === f.k}
             onClick={() => setFilter(f.k)}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm",
-              filter === f.k ? "bg-accent-soft font-medium text-accent" : "text-text-2 hover:bg-surface-2",
+              "flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors",
+              filter === f.k
+                ? "border-transparent bg-accent-soft font-medium text-accent"
+                : "border-border bg-surface text-text-2 hover:bg-surface-2",
             )}
           >
             {f.label}
@@ -166,12 +168,16 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <div className="relative min-w-40 flex-1">
+      <div className="relative mb-2 sm:hidden">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" aria-hidden />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" className="pl-9" aria-label="Search tasks" />
+      </div>
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+        <div className="relative min-w-40 flex-1 max-sm:hidden">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" className="pl-9" aria-label="Search tasks" />
         </div>
-        <Select value={cat} onChange={(e) => setCat(e.target.value)} className="w-auto" aria-label="Category">
+        <Select value={cat} onChange={(e) => setCat(e.target.value)} className="w-auto shrink-0" aria-label="Category">
           <option value="">All categories</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -181,7 +187,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
           <option value="none">Uncategorised</option>
         </Select>
         {tags.length > 0 && (
-          <Select value={tag} onChange={(e) => setTag(e.target.value)} className="w-auto" aria-label="Tag">
+          <Select value={tag} onChange={(e) => setTag(e.target.value)} className="w-auto shrink-0" aria-label="Tag">
             <option value="">All tags</option>
             {tags.map((t) => (
               <option key={t} value={t}>
@@ -190,7 +196,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
             ))}
           </Select>
         )}
-        <Select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="w-auto" aria-label="Sort">
+        <Select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="w-auto shrink-0" aria-label="Sort">
           <option value="smart">Smart sort</option>
           <option value="due">Due date</option>
           <option value="priority">Priority</option>
@@ -255,6 +261,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
         </div>
       )}
 
+      <Fab label="New task" onClick={() => setCreating({})} />
       <Modal open={!!creating} onClose={() => setCreating(null)} title={creating?.parentId ? "New subtask" : "New task"}>
         {creating && (
           <TaskForm

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellRing,
   BookHeart,
   CalendarCheck,
   Dumbbell,
@@ -20,9 +21,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useState } from "react";
-import { cn } from "./ui";
-import { ThemeToggle } from "./theme-toggle";
+import { Suspense, useEffect, useState } from "react";
+import { cn, useSwipeToClose } from "./ui";
+import { ThemeSelect, ThemeToggle } from "./theme-toggle";
 
 type NavLink = { href: string; label: string; icon: LucideIcon };
 
@@ -32,6 +33,7 @@ const L = {
   habits: { href: "/habits", label: "Habits", icon: Repeat },
   tasks: { href: "/tasks", label: "Tasks", icon: ListTodo },
   goals: { href: "/goals", label: "Goals", icon: Flag },
+  reminders: { href: "/reminders", label: "Reminders", icon: BellRing },
   gym: { href: "/gym", label: "Gym", icon: Dumbbell },
   journal: { href: "/journal", label: "Journal", icon: BookHeart },
   notes: { href: "/notes", label: "Notes", icon: NotebookPen },
@@ -43,7 +45,7 @@ const L = {
 
 const GROUPS: { title?: string; links: NavLink[] }[] = [
   { links: [L.today, L.dashboard] },
-  { title: "Track", links: [L.habits, L.tasks, L.goals, L.gym] },
+  { title: "Track", links: [L.habits, L.tasks, L.reminders, L.goals, L.gym] },
   { title: "Life", links: [L.journal, L.notes, L.todo, L.expenses, L.personal] },
 ];
 const BOTTOM: NavLink[] = [L.today, L.habits, L.tasks, L.gym];
@@ -51,29 +53,53 @@ const MORE: NavLink[] = [...GROUPS.flatMap((g) => g.links), L.settings].filter((
 
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
+/** Height of the bottom tab bar above the safe area. The More sheet and the FAB sit on top of it. */
+const BAR = "4rem";
+const ABOVE_BAR = `calc(${BAR} + env(safe-area-inset-bottom))`;
+
 type Variant = "side" | "bottom";
+
+const TAB_CLASS = "flex flex-col items-center justify-center gap-1 select-none";
+
+function TabItem({ icon: I, label, active }: { icon: LucideIcon; label: string; active: boolean }) {
+  return (
+    <>
+      <span
+        className={cn(
+          "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+          active ? "bg-accent-soft text-accent" : "text-text-3",
+        )}
+      >
+        <I className="size-[22px]" strokeWidth={active ? 2.25 : 1.9} aria-hidden />
+      </span>
+      <span className={cn("text-[11px] leading-none", active ? "font-semibold text-text" : "font-medium text-text-3")}>
+        {label}
+      </span>
+    </>
+  );
+}
 
 function LinksView({ links, path, variant }: { links: NavLink[]; path: string; variant: Variant }) {
   return (
     <>
       {links.map(({ href, label, icon: I }) => {
         const active = isActive(path, href);
-        return (
+        return variant === "side" ? (
           <Link
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={
-              variant === "side"
-                ? cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    active ? "bg-accent-soft text-accent" : "text-text-2 hover:bg-surface-2 hover:text-text",
-                  )
-                : cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active ? "text-accent" : "text-text-3")
-            }
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              active ? "bg-accent-soft text-accent" : "text-text-2 hover:bg-surface-2 hover:text-text",
+            )}
           >
-            <I className={variant === "side" ? "size-4" : "size-5"} aria-hidden />
+            <I className="size-4" aria-hidden />
             {label}
+          </Link>
+        ) : (
+          <Link key={href} href={href} aria-current={active ? "page" : undefined} className={TAB_CLASS}>
+            <TabItem icon={I} label={label} active={active} />
           </Link>
         );
       })}
@@ -122,48 +148,85 @@ export function Sidebar({ userSlot }: { userSlot: React.ReactNode }) {
   );
 }
 
-function MoreSheet({ path }: { path: string }) {
+function MoreSheet({ path, userSlot }: { path: string; userSlot: React.ReactNode }) {
   // The sheet is open only for the page it was opened on, so navigating closes it.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === path;
-  const setOpen = (v: boolean | ((o: boolean) => boolean)) =>
-    setOpenOn((typeof v === "function" ? v(open) : v) ? path : null);
+  const close = () => setOpenOn(null);
   const active = MORE.some((l) => isActive(path, l.href));
+  const { ref: panel, handlers: swipe } = useSwipeToClose<HTMLDivElement>(close);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <>
       <button
-        onClick={() => setOpen((o) => !o)}
+        type="button"
+        onClick={() => setOpenOn(open ? null : path)}
         aria-expanded={open}
-        aria-haspopup="menu"
-        className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium", active || open ? "text-accent" : "text-text-3")}
+        aria-haspopup="dialog"
+        className={TAB_CLASS}
       >
-        {open ? <X className="size-5" aria-hidden /> : <MoreHorizontal className="size-5" aria-hidden />}
-        More
+        <TabItem icon={open ? X : MoreHorizontal} label="More" active={active || open} />
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-30 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
           <div
-            role="menu"
-            className="fixed inset-x-0 bottom-[calc(57px+env(safe-area-inset-bottom))] z-40 grid grid-cols-4 gap-1 rounded-t-2xl border-t border-border bg-surface p-3"
+            className="backdrop-in fixed inset-x-0 top-0 z-30 bg-black/40"
+            style={{ bottom: ABOVE_BAR }}
+            onClick={close}
+            aria-hidden
+          />
+          <div
+            ref={panel}
+            role="dialog"
+            aria-label="More"
+            data-sheet-open
+            className="sheet-panel fixed inset-x-0 z-40 max-h-[75dvh] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-border bg-surface shadow-2xl"
+            style={{ bottom: ABOVE_BAR }}
           >
-            {MORE.map(({ href, label, icon: I }) => (
-              <Link
-                key={href}
-                href={href}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                aria-current={isActive(path, href) ? "page" : undefined}
-                className={cn(
-                  "flex flex-col items-center gap-1 rounded-xl py-3 text-xs font-medium",
-                  isActive(path, href) ? "bg-accent-soft text-accent" : "text-text-2 hover:bg-surface-2",
-                )}
-              >
-                <I className="size-5" aria-hidden />
-                {label}
-              </Link>
-            ))}
+            <div className="touch-none px-4 pt-2 pb-2" {...swipe}>
+              <div className="mx-auto h-1.5 w-10 rounded-full bg-border" aria-hidden />
+            </div>
+            <div className="grid grid-cols-4 gap-1 px-3 pb-3">
+              {MORE.map(({ href, label, icon: I }) => {
+                const on = isActive(path, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={close}
+                    aria-current={on ? "page" : undefined}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-2xl py-2.5 text-xs font-medium transition-colors active:bg-surface-2",
+                      on ? "text-accent" : "text-text-2",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-12 items-center justify-center rounded-2xl",
+                        on ? "bg-accent text-accent-fg" : "bg-surface-2 text-text",
+                      )}
+                    >
+                      <I className="size-5" aria-hidden />
+                    </span>
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="space-y-4 border-t border-border px-4 pt-4 pb-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-text-2">Theme</span>
+                <ThemeSelect />
+              </div>
+              {userSlot}
+            </div>
           </div>
         </>
       )}
@@ -171,43 +234,22 @@ function MoreSheet({ path }: { path: string }) {
   );
 }
 
-function ActiveMore() {
-  return <MoreSheet path={usePathname()} />;
+function ActiveMore({ userSlot }: { userSlot: React.ReactNode }) {
+  return <MoreSheet path={usePathname()} userSlot={userSlot} />;
 }
 
-export function MobileNav() {
+export function MobileNav({ userSlot }: { userSlot: React.ReactNode }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
     >
-      <NavLinks links={BOTTOM} variant="bottom" />
-      <Suspense fallback={<MoreSheet path="" />}>
-        <ActiveMore />
-      </Suspense>
-    </nav>
-  );
-}
-
-export function MobileHeader() {
-  return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur md:hidden">
-      <Link href="/today" className="flex items-center gap-2">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-accent-fg">
-          <Target className="size-4" aria-hidden />
-        </span>
-        <span className="font-semibold">Tracker</span>
-      </Link>
-      <div className="flex items-center gap-1">
-        <ThemeToggle />
-        <Link
-          href="/settings"
-          aria-label="Settings"
-          className="flex size-9 items-center justify-center rounded-lg text-text-2 hover:bg-surface-2"
-        >
-          <Settings className="size-5" aria-hidden />
-        </Link>
+      <div className="grid grid-cols-5" style={{ height: BAR }}>
+        <NavLinks links={BOTTOM} variant="bottom" />
+        <Suspense fallback={<MoreSheet path="" userSlot={userSlot} />}>
+          <ActiveMore userSlot={userSlot} />
+        </Suspense>
       </div>
-    </header>
+    </nav>
   );
 }

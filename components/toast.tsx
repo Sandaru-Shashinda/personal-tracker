@@ -22,12 +22,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-20 z-[100] flex flex-col items-center gap-2 px-4 md:bottom-6"
+        // Phones: top of the screen, clear of the tab bar, the FAB and the keyboard. Desktop: bottom center.
+        className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[100] flex flex-col items-center gap-2 px-4 md:top-auto md:bottom-6"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm shadow-lg"
+            className="backdrop-in pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium shadow-lg"
           >
             {t.tone === "good" ? (
               <CheckCircle2 className="size-4 text-good" aria-hidden />

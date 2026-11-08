@@ -4,7 +4,7 @@ import { Archive, CalendarClock, Check, CheckCircle2, Flag, Pencil, Plus, Rotate
 import { useState, useTransition } from "react";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
-import { Button, cn, ColorPicker, COLORS, Empty, Input, Label, Modal, Select, Textarea } from "@/components/ui";
+import { Button, cn, ColorPicker, COLORS, Empty, Input, Label, Modal, Select, Textarea, Fab } from "@/components/ui";
 import {
   addMilestone,
   deleteGoal,
@@ -48,7 +48,7 @@ export function GoalsView({ goals, milestones, today }: { goals: Goal[]; milesto
         title="Goals"
         sub="Set targets, break them into milestones, and track progress"
         action={
-          <Button variant="primary" onClick={() => setEditing("new")}>
+          <Button variant="primary" onClick={() => setEditing("new")} className="max-md:hidden">
             <Plus className="size-4" /> New goal
           </Button>
         }
@@ -107,6 +107,7 @@ export function GoalsView({ goals, milestones, today }: { goals: Goal[]; milesto
         </>
       )}
 
+      <Fab label="New goal" onClick={() => setEditing("new")} />
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing === "new" ? "New goal" : "Edit goal"} wide>
         {editing && <GoalForm goal={editing === "new" ? null : editing} onDone={() => setEditing(null)} />}
       </Modal>
@@ -312,7 +313,7 @@ function GoalDetail({
               <span className={cn("flex-1 text-sm", m.done && "text-text-3 line-through")}>{m.title}</span>
               <button
                 onClick={() => start(() => deleteMilestone(m.id))}
-                className="rounded p-1 text-text-3 opacity-100 hover:text-bad sm:opacity-0 sm:group-hover:opacity-100"
+                className="flex size-9 shrink-0 items-center justify-center rounded-md text-text-3 hover:text-bad active:bg-surface-2 can-hover:size-7 can-hover:opacity-0 can-hover:group-hover:opacity-100"
                 aria-label={`Delete milestone ${m.title}`}
               >
                 <X className="size-3.5" />

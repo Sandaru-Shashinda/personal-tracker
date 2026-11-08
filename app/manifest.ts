@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Tracker",
     short_name: "Tracker",
     description: "Personal habit, task, goal and mood tracker",
+    id: "/today",
     start_url: "/today",
     scope: "/",
     display: "standalone",
@@ -18,7 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Today", url: "/today" },
-      { name: "Dashboard", url: "/dashboard" },
+      { name: "Tasks", url: "/tasks" },
+      { name: "Habits", url: "/habits" },
       { name: "Journal", url: "/journal" },
     ],
   };
