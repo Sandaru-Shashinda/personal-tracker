@@ -228,7 +228,7 @@ function lastSession(sets: SetRow[], exerciseId: string, before: string) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3 sm:p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-3 sm:p-4">
       <p className="text-xs font-medium text-text-3">{label}</p>
       <p className="tabular mt-0.5 text-xl font-semibold tracking-tight">{value}</p>
     </div>
@@ -595,7 +595,7 @@ function ExercisesTab({ exercises }: { exercises: ExerciseLite[] }) {
             <Link
               key={e.id}
               href={`/gym/exercises/${e.id}`}
-              className="group rounded-2xl border border-border bg-surface p-2 transition-shadow hover:shadow-md"
+              className="group rounded-2xl border border-border bg-surface shadow-card p-2 transition-shadow hover:shadow-md"
             >
               <ExerciseAnim id={e.id} name={e.name} img={e.img} />
               <div className="px-1 pt-2 pb-1">

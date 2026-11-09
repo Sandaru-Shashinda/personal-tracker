@@ -16,15 +16,10 @@ import {
 } from "@/lib/actions/goals";
 import { diffDays, prettyDay } from "@/lib/dates";
 import type { Goal, GoalMilestone } from "@/lib/db/schema";
+import { progressOf } from "@/lib/goals";
 
 const AREAS = ["Health & fitness", "Career", "Finance", "Learning", "Personal", "Relationships", "Travel", "Creative"];
 type Status = "active" | "completed" | "archived";
-
-function progressOf(g: Goal, ms: GoalMilestone[]) {
-  if (g.targetValue) return Math.min(1, g.currentValue / g.targetValue);
-  if (ms.length) return ms.filter((m) => m.done).length / ms.length;
-  return g.status === "completed" ? 1 : 0;
-}
 
 const num = (n: number) => (Number.isInteger(n) ? n.toLocaleString() : (Math.round(n * 100) / 100).toLocaleString());
 
@@ -131,7 +126,7 @@ export function GoalsView({ goals, milestones, today }: { goals: Goal[]; milesto
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3 sm:p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-3 sm:p-4">
       <p className="truncate text-xs font-medium text-text-3">{label}</p>
       <p className="tabular mt-0.5 text-xl font-semibold tracking-tight sm:text-2xl">{value}</p>
     </div>
@@ -184,7 +179,7 @@ function GoalCard({ goal, milestones, today, onOpen }: { goal: Goal; milestones:
   return (
     <button
       onClick={onOpen}
-      className="flex flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-surface p-4 text-left transition-shadow hover:shadow-md"
+      className="flex flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-surface shadow-card p-4 text-left transition-shadow hover:shadow-md"
       style={{ borderTop: `4px solid ${goal.color}` }}
     >
       <div className="flex items-start gap-3">

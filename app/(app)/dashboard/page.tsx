@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Flame, Lightbulb } from "lucide-react";
+import { CalendarCheck, Flame, Lightbulb, ListTodo, Smile, TrendingUp, type LucideIcon } from "lucide-react";
 import { Icon } from "@/components/icons";
 import { moodEmojiServer } from "@/components/mood-server";
 import { PageHeader } from "@/components/page-header";
@@ -145,31 +145,41 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Dashboard" sub="Your progress across habits, tasks and mood." />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="animate-rise grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile
+          icon={CalendarCheck}
+          color="#f59e0b"
           label="Today"
           value={todayScore?.due ? `${todayScore.done}/${todayScore.due}` : "–"}
           sub={todayScore?.due ? `${pct(todayScore.ratio)} of habits done` : "nothing due"}
         />
         <Tile
+          icon={TrendingUp}
+          color="#6366f1"
           label="30-day completion"
           value={pct(rate30)}
           sub={delta === null ? "habits completed vs due" : `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)} pts vs prior 30 days`}
           tone={delta === null ? undefined : delta >= 0 ? "good" : "bad"}
         />
         <Tile
+          icon={Flame}
+          color="#f97316"
           label="Best active streak"
           value={topStreak && topStreak.s.current ? `${topStreak.s.current}` : "0"}
           unit={topStreak?.s.unit === "weeks" ? "weeks" : "days"}
           sub={topStreak && topStreak.s.current ? topStreak.h.title : "start one today"}
         />
         <Tile
+          icon={ListTodo}
+          color="#3b82f6"
           label="Tasks this week"
           value={String(taskStats.doneThisWeek)}
           sub={`${taskDelta >= 0 ? "▲" : "▼"} ${Math.abs(taskDelta)} vs last week · ${taskStats.open} open`}
           tone={taskDelta >= 0 ? "good" : undefined}
         />
         <Tile
+          icon={Smile}
+          color="#ec4899"
           label="Mood (7 days)"
           value={avgMood7 === null ? "–" : avgMood7.toFixed(1)}
           unit={avgMood7 === null ? undefined : "/ 5"}
@@ -178,7 +188,7 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5" aria-labelledby="heat-h">
+      <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5" aria-labelledby="heat-h">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h2 id="heat-h" className="text-base font-semibold">
@@ -197,9 +207,12 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2">
           <TrendChart daily={daily} weekly={weekly} monthly={monthly} />
         </div>
-        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5" aria-labelledby="ins-h">
+        <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5" aria-labelledby="ins-h">
           <h2 id="ins-h" className="mb-4 flex items-center gap-2 text-base font-semibold">
-            <Lightbulb className="size-4 text-warn" aria-hidden /> Insights
+            <span className="chip-soft flex size-7 items-center justify-center rounded-lg" style={{ "--c": "#f59e0b" } as React.CSSProperties}>
+              <Lightbulb className="size-4" aria-hidden />
+            </span>
+            Insights
           </h2>
           <ul className="space-y-3">
             {insights.map((i) => (
@@ -227,7 +240,7 @@ export default async function DashboardPage() {
         <CategoryBars data={catRows} />
       </div>
 
-      <section className="rounded-2xl border border-border bg-surface" aria-labelledby="lb-h">
+      <section className="rounded-2xl border border-border bg-surface shadow-card" aria-labelledby="lb-h">
         <div className="flex items-baseline justify-between p-4 pb-2 sm:p-5 sm:pb-2">
           <h2 id="lb-h" className="text-base font-semibold">
             Habits
@@ -294,7 +307,7 @@ export default async function DashboardPage() {
                     <td className="px-5 py-2.5">
                       <div className="flex items-center justify-end gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface-2">
-                          <div className="h-full rounded-full bg-accent" style={{ width: `${(rate ?? 0) * 100}%` }} />
+                          <div className="h-full rounded-full" style={{ width: `${(rate ?? 0) * 100}%`, background: h.color }} />
                         </div>
                         <span className="tabular w-9 text-right">{pct(rate)}</span>
                       </div>
@@ -311,6 +324,8 @@ export default async function DashboardPage() {
 }
 
 function Tile({
+  icon: I,
+  color,
   label,
   value,
   unit,
@@ -318,6 +333,8 @@ function Tile({
   tone,
   className = "",
 }: {
+  icon: LucideIcon;
+  color: string;
   label: string;
   value: string;
   unit?: string;
@@ -326,8 +343,17 @@ function Tile({
   className?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-border bg-surface p-4 ${className}`}>
-      <p className="text-xs font-medium text-text-3">{label}</p>
+    <div
+      className={`relative isolate overflow-hidden rounded-2xl border border-border bg-surface p-4 shadow-card ${className}`}
+      style={{ "--c": color } as React.CSSProperties}
+    >
+      <div className="chip-soft absolute -top-8 -right-8 -z-10 size-24 rounded-full opacity-60 blur-xl" aria-hidden />
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-xs font-medium text-text-3">{label}</p>
+        <span className="chip-soft flex size-7 shrink-0 items-center justify-center rounded-lg">
+          <I className="size-4" aria-hidden />
+        </span>
+      </div>
       <p className="tabular mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
         {value}
         {unit && <span className="ml-1 text-sm font-normal text-text-3">{unit}</span>}

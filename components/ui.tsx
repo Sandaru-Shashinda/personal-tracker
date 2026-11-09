@@ -20,14 +20,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium transition-[color,background-color,border-color,transform] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-medium transition-[color,background-color,border-color,box-shadow,filter,transform] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         size === "sm" && "h-9 px-3 text-sm sm:h-8",
         size === "md" && "h-11 px-4 text-sm sm:h-10",
         size === "icon" && "size-10 sm:size-9",
-        variant === "primary" && "bg-accent text-accent-fg hover:brightness-110",
-        variant === "secondary" && "border border-border bg-surface text-text hover:bg-surface-2",
+        variant === "primary" && "bg-brand shadow-md shadow-accent/25 hover:shadow-lg hover:shadow-accent/30 hover:brightness-110",
+        variant === "secondary" && "border border-border bg-surface text-text shadow-xs hover:bg-surface-2",
         variant === "ghost" && "text-text-2 hover:bg-surface-2 hover:text-text",
-        variant === "danger" && "bg-bad text-white hover:brightness-110",
+        variant === "danger" && "bg-bad text-white shadow-md shadow-bad/20 hover:brightness-110",
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
     <input
       ref={ref}
       className={cn(
-        "h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text placeholder:text-text-3 sm:h-10 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
+        "h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text placeholder:text-text-3 sm:h-10 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15",
         className,
       )}
       {...props}
@@ -57,7 +57,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
       <textarea
         ref={ref}
         className={cn(
-          "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-3 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
+          "w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-3 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15",
           className,
         )}
         {...props}
@@ -70,7 +70,7 @@ export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLS
   return (
     <select
       className={cn(
-        "h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text sm:h-10 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25",
+        "h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-text sm:h-10 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15",
         className,
       )}
       {...props}
@@ -89,7 +89,7 @@ export function Label({ children, hint, className }: { children: React.ReactNode
 
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("rounded-2xl border border-border bg-surface p-4 sm:p-5", className)} {...props}>
+    <div className={cn("rounded-2xl border border-border bg-surface p-4 shadow-card sm:p-5", className)} {...props}>
       {children}
     </div>
   );
@@ -211,7 +211,7 @@ export function Fab({ label, onClick, icon }: { label: string; onClick: () => vo
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-lg shadow-black/25 transition-transform active:scale-95 md:hidden"
+      className="bg-brand fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex size-14 items-center justify-center rounded-2xl shadow-xl shadow-accent/40 transition-transform active:scale-95 md:hidden"
     >
       {icon ?? <Plus className="size-6" strokeWidth={2.5} aria-hidden />}
     </button>
@@ -220,17 +220,20 @@ export function Fab({ label, onClick, icon }: { label: string; onClick: () => vo
 
 export function Empty({ icon, title, children }: { icon: React.ReactNode; title: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-      <div className="mb-3 text-text-3">{icon}</div>
-      <p className="font-medium text-text">{title}</p>
-      {children && <div className="mt-1 text-sm text-text-3">{children}</div>}
+    <div className="animate-rise flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/50 px-6 py-12 text-center">
+      <div className="relative isolate mb-4">
+        <div className="absolute inset-0 -z-10 scale-150 rounded-full bg-accent/15 blur-xl" aria-hidden />
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-accent-soft text-accent [&_svg]:size-7">{icon}</div>
+      </div>
+      <p className="font-semibold text-text">{title}</p>
+      {children && <div className="mt-1 max-w-xs text-sm text-text-3">{children}</div>}
     </div>
   );
 }
 
 export function TagInput({ value, onChange, placeholder }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
   return (
-    <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/25">
+    <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-1.5 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
       {value.map((t) => (
         <span key={t} className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-2">
           #{t}

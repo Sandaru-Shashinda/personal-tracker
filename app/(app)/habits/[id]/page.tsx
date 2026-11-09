@@ -100,7 +100,7 @@ export default async function HabitDetail({ params }: PageProps<"/habits/[id]">)
         </div>
       </div>
 
-      <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+      <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5">
         <h2 className="mb-3 text-base font-semibold">Notes</h2>
         {notes.length === 0 ? (
           <p className="text-sm text-text-3">Add notes to check-ins from the Today page and they&apos;ll appear here.</p>
@@ -121,7 +121,7 @@ export default async function HabitDetail({ params }: PageProps<"/habits/[id]">)
 
 function Stat({ label, value, unit, icon }: { label: string; value: string; unit?: string; icon?: boolean }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
       <p className="text-xs text-text-3">{label}</p>
       <p className="tabular mt-1 flex items-center gap-1 text-2xl font-semibold">
         {icon && <Flame className="size-5 text-warn" aria-hidden />}

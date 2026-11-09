@@ -25,6 +25,7 @@ const expenseInput = z
 
 function refresh() {
   revalidatePath("/expenses");
+  revalidatePath("/today");
 }
 
 export async function saveExpense(id: string | null, input: z.input<typeof expenseInput>): Promise<Result> {

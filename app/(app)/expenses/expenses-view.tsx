@@ -163,7 +163,7 @@ export function ExpensesView({
           sub={income ? `${Math.round(((income - spent) / income) * 100)}% saved` : "income − spending"}
           tone={income - spent >= 0 ? "good" : "bad"}
         />
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-xs font-medium text-text-3">Budget left</p>
           {overall ? (
             <>
@@ -284,7 +284,7 @@ export function ExpensesView({
             </div>
           </Card>
 
-          <section className="rounded-2xl border border-border bg-surface">
+          <section className="rounded-2xl border border-border bg-surface shadow-card">
             <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
               <h2 className="mr-auto text-base font-semibold">Transactions</h2>
               <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5 text-sm">
@@ -383,7 +383,7 @@ export function ExpensesView({
 
 function Tile({ label, value, sub, tone }: { label: string; value: string; sub: string; tone?: "good" | "bad" }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
       <p className="text-xs font-medium text-text-3">{label}</p>
       <p className={cn("tabular mt-1 truncate text-xl font-semibold tracking-tight sm:text-2xl", tone === "bad" && "text-bad", tone === "good" && "text-good")}>
         {value}

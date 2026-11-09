@@ -24,6 +24,7 @@ const goalInput = z.object({
 
 function refresh() {
   revalidatePath("/goals");
+  revalidatePath("/today");
 }
 
 async function ownGoal(userId: string, id: string) {

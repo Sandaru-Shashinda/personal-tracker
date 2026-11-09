@@ -180,7 +180,7 @@ function Upcoming({
           <h2 className={cn("mb-2 text-xs font-semibold tracking-wide uppercase", g.label === "Today" ? "text-accent" : "text-text-3")}>
             {g.label} · {g.items.length}
           </h2>
-          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
             {g.items.map(({ r, occ }) => (
               <ReminderRow key={r.id} reminder={r} occ={occ} today={today} onOpen={() => onOpen(r)} />
             ))}
@@ -198,7 +198,7 @@ function Upcoming({
             Past ({past.length})
           </button>
           {showPast && (
-            <div className="mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface opacity-80">
+            <div className="mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-card opacity-80">
               {past.map((r) => (
                 <ReminderRow key={r.id} reminder={r} occ={r.date} today={today} onOpen={() => onOpen(r)} />
               ))}

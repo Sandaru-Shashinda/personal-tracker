@@ -56,7 +56,7 @@ export function HabitRow({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-border bg-surface transition-colors",
+        "group relative overflow-hidden rounded-xl border border-border bg-surface shadow-card transition-colors",
         done && "bg-surface-2/60",
       )}
     >
@@ -134,7 +134,7 @@ export function HabitRow({
               type="button"
               onClick={() => commit(value - step)}
               disabled={value <= 0}
-              className="flex size-10 items-center justify-center rounded-xl border border-border bg-surface hover:bg-surface-2 active:scale-95 disabled:opacity-40 sm:size-9 sm:rounded-lg"
+              className="flex size-10 items-center justify-center rounded-xl border border-border bg-surface shadow-card hover:bg-surface-2 active:scale-95 disabled:opacity-40 sm:size-9 sm:rounded-lg"
               aria-label={`Decrease ${habit.title}`}
             >
               <Minus className="size-4" aria-hidden />

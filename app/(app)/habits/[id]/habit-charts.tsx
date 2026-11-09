@@ -25,7 +25,7 @@ export function ValueChart({
   color: string;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+    <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5">
       <h2 className="text-base font-semibold">Daily amount</h2>
       <p className="mb-4 text-xs text-text-3">
         Last 30 days · dashed line = target ({target} {unit})
@@ -53,7 +53,7 @@ export function ValueChart({
 
 export function WeekdayChart({ data }: { data: { label: string; value: number; done: number }[] }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+    <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5">
       <h2 className="text-base font-semibold">By weekday</h2>
       <p className="mb-4 text-xs text-text-3">Completion rate per weekday, last 6 months</p>
       <div className="h-52">

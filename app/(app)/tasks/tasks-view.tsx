@@ -226,7 +226,7 @@ export function TasksView({ tasks, categories, today }: { tasks: Task[]; categor
                   {g.label} · {g.items.length}
                 </h2>
               )}
-              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
                 {g.items.map((t) => {
                   const subs = subtasksOf.get(t.id) ?? [];
                   const isOpen = expanded.has(t.id) || (!!q && subs.length > 0);

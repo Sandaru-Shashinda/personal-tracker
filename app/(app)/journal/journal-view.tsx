@@ -88,7 +88,7 @@ export function JournalView({
       <PageHeader title="Journal" sub={`${entries.length} entries · ${streak}-day streak`} />
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-border bg-surface p-4">
+          <section className="rounded-2xl border border-border bg-surface shadow-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold">
@@ -147,7 +147,7 @@ export function JournalView({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-4">
+          <section className="rounded-2xl border border-border bg-surface shadow-card p-4">
             <div className="relative mb-3">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" aria-hidden />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search entries or #tags" className="pl-9" aria-label="Search journal" />
@@ -172,7 +172,7 @@ export function JournalView({
           </section>
         </div>
 
-        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-6">
+        <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1">
               <Button size="icon" variant="ghost" onClick={() => go(addDays(date, -1))} aria-label="Previous day">

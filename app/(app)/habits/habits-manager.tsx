@@ -103,7 +103,7 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
             const c = h.categoryId ? catById.get(h.categoryId) : undefined;
             const pos = active.findIndex((a) => a.id === h.id);
             return (
-              <div key={h.id} className="group flex flex-col rounded-2xl border border-border bg-surface p-4">
+              <div key={h.id} className="group flex flex-col rounded-2xl border border-border bg-surface shadow-card p-4">
                 <div className="flex items-start gap-3">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: h.color }}>
                     <Icon name={h.icon} className="size-5" />

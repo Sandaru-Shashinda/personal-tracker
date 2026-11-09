@@ -1,47 +1,14 @@
 "use client";
 
-import {
-  BellRing,
-  BookHeart,
-  CalendarCheck,
-  Dumbbell,
-  Flag,
-  LayoutDashboard,
-  ListChecks,
-  ListTodo,
-  MoreHorizontal,
-  NotebookPen,
-  Repeat,
-  Settings,
-  Target,
-  UserRound,
-  Wallet,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { MoreHorizontal, Target, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { cn, useSwipeToClose } from "./ui";
+import { chipColor, SECTIONS as L, type Section } from "./sections";
 import { ThemeSelect, ThemeToggle } from "./theme-toggle";
 
-type NavLink = { href: string; label: string; icon: LucideIcon };
-
-const L = {
-  today: { href: "/today", label: "Today", icon: CalendarCheck },
-  dashboard: { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  habits: { href: "/habits", label: "Habits", icon: Repeat },
-  tasks: { href: "/tasks", label: "Tasks", icon: ListTodo },
-  goals: { href: "/goals", label: "Goals", icon: Flag },
-  reminders: { href: "/reminders", label: "Reminders", icon: BellRing },
-  gym: { href: "/gym", label: "Gym", icon: Dumbbell },
-  journal: { href: "/journal", label: "Journal", icon: BookHeart },
-  notes: { href: "/notes", label: "Notes", icon: NotebookPen },
-  todo: { href: "/todo", label: "To-do", icon: ListChecks },
-  expenses: { href: "/expenses", label: "Expenses", icon: Wallet },
-  personal: { href: "/personal", label: "Personal", icon: UserRound },
-  settings: { href: "/settings", label: "Settings", icon: Settings },
-} satisfies Record<string, NavLink>;
+type NavLink = Section;
 
 const GROUPS: { title?: string; links: NavLink[] }[] = [
   { links: [L.today, L.dashboard] },
@@ -61,14 +28,17 @@ type Variant = "side" | "bottom";
 
 const TAB_CLASS = "flex flex-col items-center justify-center gap-1 select-none";
 
-function TabItem({ icon: I, label, active }: { icon: LucideIcon; label: string; active: boolean }) {
+const MORE_COLOR = "#6366f1";
+
+function TabItem({ icon: I, label, active, color }: { icon: LucideIcon; label: string; active: boolean; color: string }) {
   return (
     <>
       <span
         className={cn(
-          "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-          active ? "bg-accent-soft text-accent" : "text-text-3",
+          "flex h-8 w-14 items-center justify-center rounded-full transition-all duration-200",
+          active ? "chip-soft scale-105" : "text-text-3",
         )}
+        style={chipColor(color)}
       >
         <I className="size-[22px]" strokeWidth={active ? 2.25 : 1.9} aria-hidden />
       </span>
@@ -82,7 +52,7 @@ function TabItem({ icon: I, label, active }: { icon: LucideIcon; label: string; 
 function LinksView({ links, path, variant }: { links: NavLink[]; path: string; variant: Variant }) {
   return (
     <>
-      {links.map(({ href, label, icon: I }) => {
+      {links.map(({ href, label, icon: I, color }) => {
         const active = isActive(path, href);
         return variant === "side" ? (
           <Link
@@ -90,16 +60,24 @@ function LinksView({ links, path, variant }: { links: NavLink[]; path: string; v
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              active ? "bg-accent-soft text-accent" : "text-text-2 hover:bg-surface-2 hover:text-text",
+              "group flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-medium transition-colors",
+              active ? "bg-surface-2 text-text shadow-card" : "text-text-2 hover:bg-surface-2/70 hover:text-text",
             )}
           >
-            <I className="size-4" aria-hidden />
+            <span
+              className={cn(
+                "flex size-7 items-center justify-center rounded-lg transition-transform group-hover:scale-105",
+                active ? "chip-solid shadow-sm" : "chip-soft",
+              )}
+              style={chipColor(color)}
+            >
+              <I className="size-4" aria-hidden />
+            </span>
             {label}
           </Link>
         ) : (
           <Link key={href} href={href} aria-current={active ? "page" : undefined} className={TAB_CLASS}>
-            <TabItem icon={I} label={label} active={active} />
+            <TabItem icon={I} label={label} active={active} color={color} />
           </Link>
         );
       })}
@@ -122,12 +100,12 @@ function NavLinks({ links, variant }: { links: NavLink[]; variant: Variant }) {
 
 export function Sidebar({ userSlot }: { userSlot: React.ReactNode }) {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface px-3 py-5 md:flex">
-      <Link href="/today" className="mb-5 flex items-center gap-2 px-3">
-        <span className="flex size-8 items-center justify-center rounded-xl bg-accent text-accent-fg">
-          <Target className="size-4" aria-hidden />
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface/80 px-3 py-5 backdrop-blur-xl md:flex">
+      <Link href="/today" className="mb-6 flex items-center gap-2.5 px-2">
+        <span className="bg-brand flex size-9 items-center justify-center rounded-xl shadow-md shadow-accent/30">
+          <Target className="size-[18px]" aria-hidden />
         </span>
-        <span className="text-lg font-semibold tracking-tight">Tracker</span>
+        <span className="text-lg font-bold tracking-tight">Tracker</span>
       </Link>
       <nav className="-mx-1 flex flex-1 flex-col gap-0.5 overflow-y-auto px-1" aria-label="Main">
         {GROUPS.map((g, i) => (
@@ -172,7 +150,7 @@ function MoreSheet({ path, userSlot }: { path: string; userSlot: React.ReactNode
         aria-haspopup="dialog"
         className={TAB_CLASS}
       >
-        <TabItem icon={open ? X : MoreHorizontal} label="More" active={active || open} />
+        <TabItem icon={open ? X : MoreHorizontal} label="More" active={active || open} color={MORE_COLOR} />
       </button>
       {open && (
         <>
@@ -194,7 +172,7 @@ function MoreSheet({ path, userSlot }: { path: string; userSlot: React.ReactNode
               <div className="mx-auto h-1.5 w-10 rounded-full bg-border" aria-hidden />
             </div>
             <div className="grid grid-cols-4 gap-1 px-3 pb-3">
-              {MORE.map(({ href, label, icon: I }) => {
+              {MORE.map(({ href, label, icon: I, color }) => {
                 const on = isActive(path, href);
                 return (
                   <Link
@@ -204,14 +182,15 @@ function MoreSheet({ path, userSlot }: { path: string; userSlot: React.ReactNode
                     aria-current={on ? "page" : undefined}
                     className={cn(
                       "flex flex-col items-center gap-1.5 rounded-2xl py-2.5 text-xs font-medium transition-colors active:bg-surface-2",
-                      on ? "text-accent" : "text-text-2",
+                      on ? "text-text" : "text-text-2",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl",
-                        on ? "bg-accent text-accent-fg" : "bg-surface-2 text-text",
+                        "chip-solid flex size-12 items-center justify-center rounded-2xl shadow-md shadow-black/10",
+                        on && "ring-2 ring-text/80 ring-offset-2 ring-offset-surface",
                       )}
+                      style={chipColor(color)}
                     >
                       <I className="size-5" aria-hidden />
                     </span>

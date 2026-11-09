@@ -167,7 +167,7 @@ function ListPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+    <section className="rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5">
       <div className="mb-4 flex items-center gap-2">
         <span className="size-3 rounded-full" style={{ background: list.color }} aria-hidden />
         <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{list.name}</h2>
@@ -180,7 +180,7 @@ function ListPanel({
           </Button>
           {menu && (
             <div
-              className="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-border bg-surface p-1 shadow-lg"
+              className="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-border bg-surface shadow-card p-1 shadow-lg"
               onMouseLeave={() => setMenu(false)}
             >
               <MenuItem onClick={() => (setMenu(false), onEdit())} icon={<Pencil className="size-4" />}>

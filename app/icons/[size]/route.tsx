@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/icons/[size]">) 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#2a78d6",
+          background: "linear-gradient(135deg, #4f46e5, #8b3cf0)",
           borderRadius: maskable ? 0 : size * 0.22,
         }}
       >

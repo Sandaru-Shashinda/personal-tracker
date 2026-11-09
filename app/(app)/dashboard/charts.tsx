@@ -35,7 +35,7 @@ function Shell({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-surface p-4 sm:p-5", className)}>
+    <section className={cn("rounded-2xl border border-border bg-surface shadow-card p-4 sm:p-5", className)}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">{title}</h2>

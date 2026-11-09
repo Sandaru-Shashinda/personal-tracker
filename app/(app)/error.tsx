@@ -23,7 +23,7 @@ export default function AppError({ error, retry }: { error: unknown; retry: () =
   }, [retry]);
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface shadow-card px-6 py-16 text-center">
       <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-warn/10 text-warn">
         <WifiOff className="size-6" aria-hidden />
       </span>

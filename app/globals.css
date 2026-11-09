@@ -6,56 +6,69 @@
 @custom-variant can-hover (@media (hover: hover) and (pointer: fine));
 
 :root {
-  --bg: #f6f6f4;
+  --bg: #f7f7fb;
   --surface: #ffffff;
-  --surface-2: #f1f1ee;
-  --border: #e4e3df;
-  --text: #0b0b0b;
-  --text-2: #52514e;
-  --text-3: #8a8984;
-  --accent: #2a78d6;
+  --surface-2: #f2f2f8;
+  --border: #e6e6ef;
+  --text: #0e0e16;
+  --text-2: #4f4f5e;
+  --text-3: #85859a;
+  --accent: #4f46e5;
   --accent-fg: #ffffff;
-  --accent-soft: #e6f0fc;
-  --good: #1a8a4a;
-  --warn: #b26b00;
-  --bad: #d03b3b;
+  --accent-soft: #eef0ff;
+  --good: #16a34a;
+  --warn: #c2700a;
+  --bad: #dc3b3b;
 
-  /* data-viz (validated reference palette, light) */
-  --series-1: #2a78d6;
+  /* Brand gradient (primary buttons, hero, logo) */
+  --brand-from: #4f46e5;
+  --brand-to: #8b3cf0;
+  --glow-1: rgb(99 102 241 / 0.10);
+  --glow-2: rgb(192 132 252 / 0.09);
+  --card-shadow: 0 1px 2px rgb(20 20 50 / 0.04), 0 6px 20px -8px rgb(20 20 50 / 0.10);
+
+  /* data-viz (light) */
+  --series-1: #4f46e5;
   --series-2: #eb6834;
-  --grid: #ebeae6;
-  --seq-0: #ecebe7;
-  --seq-1: #cde2fb;
-  --seq-2: #86b6ef;
-  --seq-3: #3987e5;
-  --seq-4: #1c5cab;
-  --seq-5: #0d366b;
+  --grid: #ebebf2;
+  --seq-0: #ececf3;
+  --seq-1: #dcdcfd;
+  --seq-2: #a9abf6;
+  --seq-3: #6f6ff0;
+  --seq-4: #4338ca;
+  --seq-5: #2b2582;
 }
 
 .dark {
-  --bg: #111110;
-  --surface: #1a1a19;
-  --surface-2: #232321;
-  --border: #2f2f2c;
-  --text: #f0efec;
-  --text-2: #c3c2b7;
-  --text-3: #8d8c84;
-  --accent: #3987e5;
+  --bg: #0d0d12;
+  --surface: #16161e;
+  --surface-2: #1f1f29;
+  --border: #2a2a36;
+  --text: #f1f1f6;
+  --text-2: #c4c4d2;
+  --text-3: #8e8ea0;
+  --accent: #6363f1;
   --accent-fg: #ffffff;
-  --accent-soft: #1b2a3d;
-  --good: #3fb86e;
-  --warn: #e0a030;
-  --bad: #e66767;
+  --accent-soft: #1f1e40;
+  --good: #3fbf72;
+  --warn: #e7a43a;
+  --bad: #ec6b6b;
 
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --grid: #2a2a28;
-  --seq-0: #262624;
-  --seq-1: #184f95;
-  --seq-2: #256abf;
-  --seq-3: #3987e5;
-  --seq-4: #6da7ec;
-  --seq-5: #b7d3f6;
+  --brand-from: #5b5bf0;
+  --brand-to: #9354f3;
+  --glow-1: rgb(99 102 241 / 0.16);
+  --glow-2: rgb(168 85 247 / 0.10);
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -12px rgb(0 0 0 / 0.6);
+
+  --series-1: #7b7ff7;
+  --series-2: #e0703f;
+  --grid: #272732;
+  --seq-0: #22222c;
+  --seq-1: #2c2a66;
+  --seq-2: #3f3aa6;
+  --seq-3: #5f5fe6;
+  --seq-4: #9396f7;
+  --seq-5: #cbcdfc;
 }
 
 @theme inline {
@@ -72,8 +85,25 @@
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
+  --shadow-card: var(--card-shadow);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Brand gradient fill with white content. */
+@utility bg-brand {
+  background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  color: #fff;
+}
+
+/* Section-coloured icon chips. Set --c (a hex colour) inline. */
+@utility chip-solid {
+  background-image: linear-gradient(140deg, color-mix(in oklab, var(--c) 78%, white), var(--c));
+  color: #fff;
+}
+@utility chip-soft {
+  background-color: color-mix(in oklab, var(--c) 14%, transparent);
+  color: var(--c);
 }
 
 html {
@@ -81,12 +111,23 @@ html {
 }
 
 body {
-  background: var(--bg);
+  /* Transparent so the soft colour glow (body::before) shows through over html's background. */
+  background: transparent;
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 28rem at 10% -8rem, var(--glow-1), transparent 70%),
+    radial-gradient(48rem 24rem at 100% -6rem, var(--glow-2), transparent 70%);
 }
 
 /* No double-tap-to-zoom delay, and no text-selection / callout when long-pressing controls. */
@@ -157,8 +198,22 @@ select {
   animation: pop 260ms ease-out;
 }
 
+/* Gentle entrance for page content. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise {
+  animation: rise 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise { animation: none; }
+}
+
 dialog::backdrop {
-  background: rgb(0 0 0 / 0.45);
+  background: rgb(12 12 30 / 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 /* Modals: a bottom sheet that slides up on phones, a centered card that fades in on larger screens. */
