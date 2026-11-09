@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Personal" };
 
 export default async function PersonalPage() {
   const user = await requireUser();
-  const [[profile], docs] = await Promise.all([
+  const [[profile], docs] = await db.batch([
     db.select().from(personalProfiles).where(eq(personalProfiles.userId, user.id)).limit(1),
     db
       .select({

@@ -87,12 +87,14 @@ export async function addToPlan(exerciseIds: string[]): Promise<Result> {
   const user = await requireUser();
   const exercises = [...new Set(exerciseIds)].map(getExercise).filter((e) => !!e);
   if (!exercises.length) return { ok: false, error: "Pick at least one exercise" };
-  const [{ top }] = await db.select({ top: max(gymPlan.sortOrder) }).from(gymPlan).where(eq(gymPlan.userId, user.id));
-  const recent = await db
-    .select({ exerciseId: workoutSets.exerciseId, reps: workoutSets.reps, weight: workoutSets.weight, durationSec: workoutSets.durationSec })
-    .from(workoutSets)
-    .where(and(eq(workoutSets.userId, user.id), inArray(workoutSets.exerciseId, exercises.map((e) => e.id))))
-    .orderBy(desc(workoutSets.date), desc(workoutSets.createdAt));
+  const [[{ top }], recent] = await db.batch([
+    db.select({ top: max(gymPlan.sortOrder) }).from(gymPlan).where(eq(gymPlan.userId, user.id)),
+    db
+      .select({ exerciseId: workoutSets.exerciseId, reps: workoutSets.reps, weight: workoutSets.weight, durationSec: workoutSets.durationSec })
+      .from(workoutSets)
+      .where(and(eq(workoutSets.userId, user.id), inArray(workoutSets.exerciseId, exercises.map((e) => e.id))))
+      .orderBy(desc(workoutSets.date), desc(workoutSets.createdAt)),
+  ]);
   const last = new Map<string, (typeof recent)[number]>();
   for (const r of recent) if (!last.has(r.exerciseId)) last.set(r.exerciseId, r);
 
@@ -167,21 +169,24 @@ export async function completePlanItem(date: string, id: string, input: z.input<
     .limit(1);
   if (!item) return { ok: false, error: "Exercise is no longer in your plan" };
 
-  await db
-    .delete(workoutSets)
-    .where(and(eq(workoutSets.userId, user.id), eq(workoutSets.date, date), eq(workoutSets.exerciseId, item.exerciseId)));
-  await db.insert(workoutSets).values(
-    Array.from({ length: v.sets }, () => ({
-      userId: user.id,
-      date,
-      exerciseId: item.exerciseId,
-      exerciseName: item.exerciseName,
-      reps: v.reps,
-      weight: v.weight,
-      durationSec: v.durationSec,
-    })),
-  );
-  await db.update(gymPlan).set(v).where(eq(gymPlan.id, item.id));
+  // One request (and one transaction): replace the day's sets and move the plan target.
+  await db.batch([
+    db
+      .delete(workoutSets)
+      .where(and(eq(workoutSets.userId, user.id), eq(workoutSets.date, date), eq(workoutSets.exerciseId, item.exerciseId))),
+    db.insert(workoutSets).values(
+      Array.from({ length: v.sets }, () => ({
+        userId: user.id,
+        date,
+        exerciseId: item.exerciseId,
+        exerciseName: item.exerciseName,
+        reps: v.reps,
+        weight: v.weight,
+        durationSec: v.durationSec,
+      })),
+    ),
+    db.update(gymPlan).set(v).where(eq(gymPlan.id, item.id)),
+  ]);
   refresh();
   return { ok: true };
 }

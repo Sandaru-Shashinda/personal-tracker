@@ -1,9 +1,9 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "../auth";
+import { requireUser, userTag } from "../auth";
 import { budgets, db, expenses, users } from "../db";
 import { CURRENCIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from "../expenses";
 
@@ -72,6 +72,7 @@ export async function setCurrency(currency: string): Promise<Result> {
   const user = await requireUser();
   if (!CURRENCIES.includes(currency)) return { ok: false, error: "Unsupported currency" };
   await db.update(users).set({ currency }).where(eq(users.id, user.id));
+  updateTag(userTag(user.id));
   refresh();
   return { ok: true };
 }

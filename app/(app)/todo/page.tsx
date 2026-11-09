@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "To-do" };
 
 export default async function TodoPage() {
   const user = await requireUser();
-  const [lists, items] = await Promise.all([
+  const [lists, items] = await db.batch([
     db.select().from(todoLists).where(eq(todoLists.userId, user.id)).orderBy(asc(todoLists.createdAt)),
     db.select().from(todoItems).where(eq(todoItems.userId, user.id)).orderBy(asc(todoItems.createdAt)),
   ]);

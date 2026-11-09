@@ -5,8 +5,9 @@ import { Icon } from "@/components/icons";
 import { moodEmojiServer } from "@/components/mood-server";
 import { PageHeader } from "@/components/page-header";
 import { requireUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { addDays, dayRange, startOfMonth, startOfWeek, todayInTz } from "@/lib/dates";
-import { getCategories, getHabits, getJournal, getLogs, getTaskStats } from "@/lib/queries";
+import { getCategories, getHabits, getJournal, getLogs, taskStatsFrom, taskStatsQueries } from "@/lib/queries";
 import { buildInsights, computeStreak, dailyScores, habitCompletion, indexLogs } from "@/lib/stats";
 import { CategoryBars, MoodChart, TasksChart, TrendChart, type TrendPoint } from "./charts";
 import { Heatmap } from "./heatmap";
@@ -19,13 +20,15 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const today = todayInTz(user.timezone);
   const yearAgo = addDays(today, -370);
-  const [habits, logs, categories, taskStats, journal] = await Promise.all([
+  // One HTTP request for all queries (Neon is far away; each round trip is expensive).
+  const [habits, logs, categories, taskCounts, completedByDay, journal] = await db.batch([
     getHabits(user.id),
     getLogs(user.id, addDays(today, -800), today),
     getCategories(user.id),
-    getTaskStats(user),
+    ...taskStatsQueries(user),
     getJournal(user.id, addDays(today, -400), today),
   ]);
+  const taskStats = taskStatsFrom(taskCounts, completedByDay);
   const idx = indexLogs(logs);
   const ws = user.weekStartsOn;
 

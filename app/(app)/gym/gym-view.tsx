@@ -2,7 +2,7 @@
 
 import { Check, ChevronLeft, ChevronRight, Dumbbell, History, Plus, Search, Trash2, TrendingDown, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ExerciseAnim } from "@/components/exercise-anim";
 import { PageHeader } from "@/components/page-header";
@@ -44,14 +44,30 @@ export function setLabel(s: Pick<SetRow, "reps" | "weight" | "durationSec">) {
   return `${s.reps ?? 0} reps` + (s.weight ? ` × ${fmtKg(s.weight)}` : "");
 }
 
+/** The full exercise library, fetched once per page load and kept by the browser's HTTP cache. */
+let libraryRequest: Promise<ExerciseLite[]> | null = null;
+function loadLibrary() {
+  libraryRequest ??= fetch("/api/exercises")
+    .then((r) => {
+      if (!r.ok) throw new Error(`Exercise library: HTTP ${r.status}`);
+      return r.json() as Promise<ExerciseLite[]>;
+    })
+    .catch((err) => {
+      libraryRequest = null;
+      throw err;
+    });
+  return libraryRequest;
+}
+
 export function GymView({
-  exercises,
+  known,
   sets,
   plan,
   today,
   weekStartsOn,
 }: {
-  exercises: ExerciseLite[];
+  /** Exercises already in the plan or the log, so the page renders before the library arrives. */
+  known: ExerciseLite[];
   sets: SetRow[];
   plan: PlanItem[];
   today: string;
@@ -59,7 +75,18 @@ export function GymView({
 }) {
   const [tab, setTab] = useState<Tab>("today");
   const [date, setDate] = useState(today);
-  const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
+  const [exercises, setExercises] = useState<ExerciseLite[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    loadLibrary().then(
+      (list) => live && setExercises(list),
+      (err) => console.error(err),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  const byId = useMemo(() => new Map((exercises ?? known).map((e) => [e.id, e])), [exercises, known]);
   const trainedToday = sets.some((s) => s.date === today);
 
   return (
@@ -147,7 +174,7 @@ function WorkoutTab({
   today: string;
   sets: SetRow[];
   byId: Map<string, ExerciseLite>;
-  exercises: ExerciseLite[];
+  exercises: ExerciseLite[] | null;
 }) {
   const [extra, setExtra] = useState<string[]>([]);
   const [picking, setPicking] = useState(false);
@@ -416,6 +443,16 @@ function NumField({
 
 /* ------------------------------------------------------------------ Picker & library */
 
+const NO_EXERCISES: ExerciseLite[] = [];
+
+function LibraryLoading() {
+  return (
+    <div className="flex items-center justify-center gap-2 py-12 text-sm text-text-3" role="status">
+      <Dumbbell className="size-4 animate-pulse" aria-hidden /> Loading exercises…
+    </div>
+  );
+}
+
 function useFilteredExercises(exercises: ExerciseLite[]) {
   const [group, setGroup] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -482,13 +519,14 @@ function GroupChips({
 }
 
 export function ExercisePicker({
-  exercises,
+  exercises: maybeExercises,
   recentIds,
   onPick,
   selected,
   disabled,
 }: {
-  exercises: ExerciseLite[];
+  /** null while the library is still loading. */
+  exercises: ExerciseLite[] | null;
   recentIds: string[];
   onPick: (id: string) => void;
   /** Multi-select mode: picked ids get a tick instead of closing the picker. */
@@ -496,6 +534,7 @@ export function ExercisePicker({
   /** Ids that can't be picked again (e.g. already in the plan). */
   disabled?: Set<string>;
 }) {
+  const exercises = maybeExercises ?? NO_EXERCISES;
   const f = useFilteredExercises(exercises);
   const [initial] = useState(recentIds.length ? "recent" : "all");
   const [mode, setMode] = useState(initial);
@@ -504,6 +543,7 @@ export function ExercisePicker({
   const list = mode === "recent" && !f.q ? recent : f.list;
   const shown = list.slice(0, 60);
 
+  if (!maybeExercises) return <LibraryLoading />;
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -577,11 +617,12 @@ export function ExercisePicker({
   );
 }
 
-function ExercisesTab({ exercises }: { exercises: ExerciseLite[] }) {
-  const f = useFilteredExercises(exercises);
+function ExercisesTab({ exercises }: { exercises: ExerciseLite[] | null }) {
+  const f = useFilteredExercises(exercises ?? NO_EXERCISES);
   const [limit, setLimit] = useState(24);
   const reset = () => setLimit(24);
 
+  if (!exercises) return <LibraryLoading />;
   return (
     <div className="space-y-4">
       <GroupChips

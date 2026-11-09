@@ -39,8 +39,11 @@ export default async function GymPage() {
     .from(workoutSets)
     .where(and(eq(workoutSets.userId, user.id), gte(workoutSets.date, addDays(today, -730))))
     .orderBy(asc(workoutSets.date), asc(workoutSets.createdAt));
-  const [planRows, sets] = await Promise.all([planQuery, setsQuery]);
+  const [planRows, sets] = await db.batch([planQuery, setsQuery]);
   const plan = planRows.map(({ createdAt, ...p }) => ({ ...p, since: todayInTz(user.timezone, createdAt) }));
+  // Only the exercises this page shows right away; the full library loads separately (/api/exercises).
+  const used = new Set([...plan.map((p) => p.exerciseId), ...sets.map((s) => s.exerciseId)]);
+  const known = getExerciseList().filter((e) => used.has(e.id));
 
-  return <GymView exercises={getExerciseList()} sets={sets} plan={plan} today={today} weekStartsOn={user.weekStartsOn} />;
+  return <GymView known={known} sets={sets} plan={plan} today={today} weekStartsOn={user.weekStartsOn} />;
 }

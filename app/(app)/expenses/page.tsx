@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Expenses" };
 
 export default async function ExpensesPage() {
   const user = await requireUser();
-  const [rows, budgetRows] = await Promise.all([
+  const [rows, budgetRows] = await db.batch([
     db.select().from(expenses).where(eq(expenses.userId, user.id)).orderBy(desc(expenses.date), desc(expenses.createdAt)),
     db.select().from(budgets).where(eq(budgets.userId, user.id)),
   ]);

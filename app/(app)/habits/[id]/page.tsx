@@ -16,16 +16,20 @@ export default async function HabitDetail({ params }: PageProps<"/habits/[id]">)
   const user = await requireUser();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const [habit] = await db
-    .select()
-    .from(habits)
-    .where(and(eq(habits.id, id), eq(habits.userId, user.id)))
-    .limit(1);
-  if (!habit) notFound();
-  const [logs, cats] = await Promise.all([
-    db.select().from(habitLogs).where(eq(habitLogs.habitId, id)),
+  // One round trip; logs are scoped to the user too, so nothing leaks if the habit isn't theirs.
+  const [[habit], logs, cats] = await db.batch([
+    db
+      .select()
+      .from(habits)
+      .where(and(eq(habits.id, id), eq(habits.userId, user.id)))
+      .limit(1),
+    db
+      .select()
+      .from(habitLogs)
+      .where(and(eq(habitLogs.habitId, id), eq(habitLogs.userId, user.id))),
     db.select().from(categories).where(eq(categories.userId, user.id)),
   ]);
+  if (!habit) notFound();
   const today = todayInTz(user.timezone);
   const ws = user.weekStartsOn;
   const map = new Map(logs.map((l) => [l.date, l.value]));

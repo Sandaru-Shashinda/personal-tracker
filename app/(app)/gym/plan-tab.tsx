@@ -101,7 +101,7 @@ export function PlanTab({
   sets: SetRow[];
   plan: PlanItem[];
   byId: Map<string, ExerciseLite>;
-  exercises: ExerciseLite[];
+  exercises: ExerciseLite[] | null;
   weekStartsOn: number;
 }) {
   const [adding, setAdding] = useState(false);
@@ -378,7 +378,7 @@ function Num({
 
 /* ------------------------------------------------------------------ Adding & editing */
 
-function AddToPlan({ exercises, plan, sets, onDone }: { exercises: ExerciseLite[]; plan: PlanItem[]; sets: SetRow[]; onDone: () => void }) {
+function AddToPlan({ exercises, plan, sets, onDone }: { exercises: ExerciseLite[] | null; plan: PlanItem[]; sets: SetRow[]; onDone: () => void }) {
   const toast = useToast();
   const [pending, start] = useTransition();
   const [picked, setPicked] = useState<string[]>([]);

@@ -2,10 +2,10 @@
 
 import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { destroySession, requireUser } from "../auth";
+import { destroySession, getPasswordHash, requireUser, userTag } from "../auth";
 import { categories, db, pushSubscriptions, users } from "../db";
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
@@ -26,6 +26,7 @@ export async function updateProfile(input: z.input<typeof profileInput>): Promis
     return { ok: false, error: "Unknown timezone" };
   }
   await db.update(users).set(parsed.data).where(eq(users.id, user.id));
+  updateTag(userTag(user.id));
   revalidatePath("/", "layout");
   return { ok: true, message: "Profile saved" };
 }
@@ -33,7 +34,8 @@ export async function updateProfile(input: z.input<typeof profileInput>): Promis
 export async function changePassword(current: string, next: string): Promise<Result> {
   const user = await requireUser();
   if (next.length < 8) return { ok: false, error: "New password must be at least 8 characters" };
-  if (!(await bcrypt.compare(current, user.passwordHash))) return { ok: false, error: "Current password is wrong" };
+  const hash = await getPasswordHash(user.id);
+  if (!hash || !(await bcrypt.compare(current, hash))) return { ok: false, error: "Current password is wrong" };
   await db
     .update(users)
     .set({ passwordHash: await bcrypt.hash(next, 12) })
@@ -43,8 +45,10 @@ export async function changePassword(current: string, next: string): Promise<Res
 
 export async function deleteAccount(password: string): Promise<Result> {
   const user = await requireUser();
-  if (!(await bcrypt.compare(password, user.passwordHash))) return { ok: false, error: "Password is wrong" };
+  const hash = await getPasswordHash(user.id);
+  if (!hash || !(await bcrypt.compare(password, hash))) return { ok: false, error: "Password is wrong" };
   await db.delete(users).where(eq(users.id, user.id));
+  updateTag(userTag(user.id));
   await destroySession();
   redirect("/signup");
 }

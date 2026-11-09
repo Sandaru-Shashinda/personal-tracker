@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { budgets, db, expenses, goalMilestones, goals, reminders, tasks } from "@/lib/db";
 import { addDays, startOfMonth, todayInTz } from "@/lib/dates";
 import { progressOf } from "@/lib/goals";
-import { getCategories, getHabits, getJournalEntry, getLogs, getTodayTasks } from "@/lib/queries";
+import { getCategories, getHabits, getLogs, journalEntryQuery, todayTasksFrom, topLevelTasksQuery } from "@/lib/queries";
 import { indexLogs } from "@/lib/stats";
 import { buildHotList, type GoalSummary } from "@/lib/today";
 import { buildHabitDayViews } from "@/lib/view";
@@ -21,13 +21,14 @@ export default async function TodayPage({ searchParams }: PageProps<"/today">) {
   const monthStart = startOfMonth(today);
   const nextMonth = startOfMonth(addDays(monthStart, 32));
 
-  const [habits, logs, categories, dayTasks, entry, reminderRows, openTasks, goalRows, milestones, budgetRows, spentRows] =
-    await Promise.all([
+  // One HTTP request for all queries: Neon is far away, and parallel requests each open a connection.
+  const [habits, logs, categories, topTasks, entryRows, reminderRows, openTasks, goalRows, milestones, budgetRows, spentRows] =
+    await db.batch([
       getHabits(user.id),
       getLogs(user.id, addDays(today, -400), today),
       getCategories(user.id),
-      getTodayTasks(user.id, date),
-      getJournalEntry(user.id, date),
+      topLevelTasksQuery(user.id),
+      journalEntryQuery(user.id, date),
       db.select().from(reminders).where(eq(reminders.userId, user.id)).orderBy(asc(reminders.time)),
       db
         .select()
@@ -55,6 +56,8 @@ export default async function TodayPage({ searchParams }: PageProps<"/today">) {
         )
         .groupBy(expenses.category),
     ]);
+  const dayTasks = todayTasksFrom(topTasks, date);
+  const entry = entryRows[0] ?? null;
 
   const idx = indexLogs(logs);
   const views = buildHabitDayViews(habits, idx, date, today, user.weekStartsOn);

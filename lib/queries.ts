@@ -3,11 +3,11 @@ import { and, asc, desc, eq, gte, isNotNull, isNull, lte, sql } from "drizzle-or
 import { addDays, startOfWeek, todayInTz } from "./dates";
 import { categories, db, habitLogs, habits, journalEntries, tasks, type User } from "./db";
 
-export async function getCategories(userId: string) {
+export function getCategories(userId: string) {
   return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(asc(categories.name));
 }
 
-export async function getHabits(userId: string, { includeArchived = false } = {}) {
+export function getHabits(userId: string, { includeArchived = false } = {}) {
   return db
     .select()
     .from(habits)
@@ -15,21 +15,21 @@ export async function getHabits(userId: string, { includeArchived = false } = {}
     .orderBy(asc(habits.sortOrder), asc(habits.createdAt));
 }
 
-export async function getLogs(userId: string, from: string, to: string) {
+export function getLogs(userId: string, from: string, to: string) {
   return db
     .select({ habitId: habitLogs.habitId, date: habitLogs.date, value: habitLogs.value, note: habitLogs.note })
     .from(habitLogs)
     .where(and(eq(habitLogs.userId, userId), gte(habitLogs.date, from), lte(habitLogs.date, to)));
 }
 
-export async function getAllLogs(userId: string) {
+export function getAllLogs(userId: string) {
   return db
     .select({ habitId: habitLogs.habitId, date: habitLogs.date, value: habitLogs.value, note: habitLogs.note })
     .from(habitLogs)
     .where(eq(habitLogs.userId, userId));
 }
 
-export async function getTasks(userId: string) {
+export function getTasks(userId: string) {
   return db
     .select()
     .from(tasks)
@@ -42,7 +42,7 @@ export async function getTasks(userId: string) {
     );
 }
 
-export async function getJournal(userId: string, from: string, to: string) {
+export function getJournal(userId: string, from: string, to: string) {
   return db
     .select()
     .from(journalEntries)
@@ -50,24 +50,28 @@ export async function getJournal(userId: string, from: string, to: string) {
     .orderBy(desc(journalEntries.date));
 }
 
-export async function getJournalEntry(userId: string, date: string) {
-  const [row] = await db
+export function journalEntryQuery(userId: string, date: string) {
+  return db
     .select()
     .from(journalEntries)
     .where(and(eq(journalEntries.userId, userId), eq(journalEntries.date, date)))
     .limit(1);
+}
+
+export async function getJournalEntry(userId: string, date: string) {
+  const [row] = await journalEntryQuery(userId, date);
   return row ?? null;
 }
 
-/** Task counters for the dashboard, computed in the user's timezone. */
-export async function getTaskStats(user: User) {
+/** Task counters for the dashboard, computed in the user's timezone. Run both queries in one `db.batch`. */
+export function taskStatsQueries(user: Pick<User, "id" | "timezone" | "weekStartsOn">) {
   const today = todayInTz(user.timezone);
   const weekStart = startOfWeek(today, user.weekStartsOn);
   const lastWeekStart = addDays(weekStart, -7);
   const tz = user.timezone;
   const localDay = sql<string>`to_char(${tasks.completedAt} AT TIME ZONE ${tz}, 'YYYY-MM-DD')`;
 
-  const [counts] = await db
+  const counts = db
     .select({
       open: sql<number>`count(*) filter (where ${tasks.completedAt} is null)`.mapWith(Number),
       overdue: sql<number>`count(*) filter (where ${tasks.completedAt} is null and ${tasks.dueDate} < ${today})`.mapWith(
@@ -85,7 +89,7 @@ export async function getTaskStats(user: User) {
     .from(tasks)
     .where(eq(tasks.userId, user.id));
 
-  const completedByDay = await db
+  const completedByDay = db
     .select({ date: localDay, n: sql<number>`count(*)`.mapWith(Number) })
     .from(tasks)
     .where(and(eq(tasks.userId, user.id), isNotNull(tasks.completedAt), gte(tasks.completedAt, sql`now() - interval '400 days'`)))
@@ -93,16 +97,26 @@ export async function getTaskStats(user: User) {
     // parameter ($3 vs $1), and Postgres won't treat those as the same expression.
     .groupBy(sql`1`);
 
-  return { ...counts, completedByDay };
+  return [counts, completedByDay] as const;
 }
 
-export async function getTodayTasks(userId: string, today: string) {
-  // Open tasks due today or earlier, plus tasks completed today (so they stay visible once ticked).
-  const rows = await db
+export function taskStatsFrom(
+  counts: Awaited<ReturnType<typeof taskStatsQueries>[0]>,
+  completedByDay: Awaited<ReturnType<typeof taskStatsQueries>[1]>,
+) {
+  return { ...counts[0], completedByDay };
+}
+
+export function topLevelTasksQuery(userId: string) {
+  return db
     .select()
     .from(tasks)
     .where(and(eq(tasks.userId, userId), isNull(tasks.parentId)))
     .orderBy(desc(tasks.priority), asc(tasks.dueDate), asc(tasks.createdAt));
+}
+
+/** Open tasks due today or earlier, plus tasks completed today (so they stay visible once ticked). */
+export function todayTasksFrom(rows: Awaited<ReturnType<typeof topLevelTasksQuery>>, today: string) {
   return rows.filter(
     (t) =>
       (!t.completedAt && t.dueDate && t.dueDate <= today) ||
