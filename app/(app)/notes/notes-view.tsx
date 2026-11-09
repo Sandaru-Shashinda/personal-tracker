@@ -2,6 +2,7 @@
 
 import { NotebookPen, Pin, PinOff, Plus, Search, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { Button, cn, COLORS, Empty, Input, Modal, Textarea, Fab } from "@/components/ui";
@@ -102,7 +103,7 @@ function Section({
           >
             <button onClick={() => onOpen(n)} className="block w-full text-left" aria-label={`Open note ${n.title || "untitled"}`}>
               {n.title && <h3 className="mb-1 pr-8 font-semibold">{n.title}</h3>}
-              {n.content && <p className="line-clamp-[10] text-sm whitespace-pre-wrap text-text-2">{n.content}</p>}
+              {n.content && <Markdown source={n.content} compact className="text-sm text-text-2" />}
               <p className="mt-2 text-xs text-text-3">{ago(n.updatedAt)}</p>
             </button>
             <button
@@ -126,6 +127,19 @@ function NoteEditor({ initial, onDone }: { initial: Draft; onDone: () => void })
   const toast = useToast();
   const [pending, start] = useTransition();
   const [d, setD] = useState(initial);
+  // Existing notes open rendered so they read (and tick) like a note; new ones open for writing.
+  const [mode, setMode] = useState<"write" | "preview">(initial.id && initial.content.trim() ? "preview" : "write");
+
+  /** Ticking a checklist item in preview saves straight away for existing notes. */
+  function toggleTask(content: string) {
+    const next = { ...d, content };
+    setD(next);
+    if (!next.id) return;
+    start(async () => {
+      const res = await saveNote(next.id, { title: next.title, content: next.content, color: next.color, pinned: next.pinned });
+      if (!res.ok) toast(res.error, "bad");
+    });
+  }
 
   function save() {
     start(async () => {
@@ -158,14 +172,50 @@ function NoteEditor({ initial, onDone }: { initial: Draft; onDone: () => void })
         maxLength={200}
         autoFocus={!d.id}
       />
-      <Textarea
-        value={d.content}
-        onChange={(e) => setD({ ...d, content: e.target.value })}
-        placeholder="Write your note…"
-        rows={12}
-        className="min-h-60 leading-relaxed"
-        autoFocus={!!d.id}
-      />
+      <div className="flex items-center justify-between gap-2">
+        <div role="tablist" aria-label="Note view" className="inline-flex rounded-lg bg-surface-2 p-0.5">
+          {(["write", "preview"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "h-8 rounded-md px-3 text-sm font-medium capitalize text-text-3 hover:text-text",
+                mode === m && "bg-surface text-text shadow-sm",
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-text-3">Markdown supported</span>
+      </div>
+      {mode === "write" ? (
+        <>
+          <Textarea
+            value={d.content}
+            onChange={(e) => setD({ ...d, content: e.target.value })}
+            placeholder="Write your note…"
+            rows={12}
+            className="min-h-60 font-mono text-sm leading-relaxed"
+            autoFocus={!!d.id}
+          />
+          <p className="text-xs leading-relaxed text-text-3">
+            <code># Heading</code> · <code>**bold**</code> · <code>*italic*</code> · <code>- list</code> ·{" "}
+            <code>- [ ] task</code> · <code>[link](https://…)</code> · <code>`code`</code> · <code>&gt; quote</code>
+          </p>
+        </>
+      ) : (
+        <div className="min-h-60 rounded-lg border border-border px-3 py-2.5">
+          {d.content.trim() ? (
+            <Markdown source={d.content} onChange={toggleTask} className="text-[15px]" />
+          ) : (
+            <p className="text-sm text-text-3">Nothing to preview yet.</p>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-text-3">Colour</span>
         <button
