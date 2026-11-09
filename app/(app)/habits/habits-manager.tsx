@@ -97,97 +97,128 @@ export function HabitsManager({ habits, categories, stats }: { habits: Habit[]; 
           {tab === "active" && "Create a habit to start building streaks."}
         </Empty>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {list.map((h) => {
-            const s = stats[h.id];
-            const c = h.categoryId ? catById.get(h.categoryId) : undefined;
-            const pos = active.findIndex((a) => a.id === h.id);
-            return (
-              <div key={h.id} className="group flex flex-col rounded-2xl border border-border bg-surface shadow-card p-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: h.color }}>
-                    <Icon name={h.icon} className="size-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/habits/${h.id}`} className="block truncate font-medium hover:underline">
-                      {h.title}
-                    </Link>
-                    <p className="text-xs text-text-3">
-                      {frequencyLabel(h)}
-                      {h.type === "count" && ` · ${h.target} ${h.unit ?? ""}`}
-                    </p>
-                  </div>
-                  {canReorder && (
-                    <div className="-my-1 -mr-1 flex flex-col can-hover:opacity-0 can-hover:group-hover:opacity-100">
-                      <button onClick={() => move(h.id, -1)} disabled={pos === 0} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move up">
-                        <ArrowUp className="size-4" />
-                      </button>
-                      <button onClick={() => move(h.id, 1)} disabled={pos === active.length - 1} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move down">
-                        <ArrowDown className="size-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
-                  {c && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-text-2">
-                      <span className="size-2 rounded-full" style={{ background: c.color }} aria-hidden />
-                      {c.name}
-                    </span>
-                  )}
-                  {h.reminderTime && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-text-2">
-                      <Bell className="size-3" aria-hidden /> {h.reminderTime}
-                    </span>
-                  )}
-                  {h.tags.map((t) => (
-                    <span key={t} className="rounded-md bg-surface-2 px-2 py-0.5 text-text-2">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-                <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
-                  <div>
-                    <dt className="text-[11px] text-text-3">Streak</dt>
-                    <dd className="tabular flex items-center justify-center gap-0.5 font-semibold">
-                      {s.streak > 0 && <Flame className="size-3.5 text-warn" aria-hidden />}
-                      {s.streak}
-                      <span className="text-xs font-normal text-text-3">{s.unit === "weeks" ? "w" : "d"}</span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] text-text-3">30-day</dt>
-                    <dd className="tabular font-semibold">{s.rate === null ? "–" : `${Math.round(s.rate * 100)}%`}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] text-text-3">Total</dt>
-                    <dd className="tabular font-semibold">{s.total}</dd>
-                  </div>
-                </dl>
-                <div className="mt-3 flex justify-end gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(h)}>
-                    <Pencil className="size-3.5" /> Edit
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => start(() => setHabitArchived(h.id, !h.archived))}>
-                    {h.archived ? <ArchiveRestore className="size-3.5" /> : <Archive className="size-3.5" />}
-                    {h.archived ? "Restore" : "Archive"}
-                  </Button>
-                  {h.archived && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="hover:text-bad"
-                      onClick={() => {
-                        if (confirm(`Permanently delete "${h.title}" and all its history?`)) start(() => deleteHabit(h.id));
-                      }}
-                    >
-                      <Trash2 className="size-3.5" /> Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-card">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-text-3">
+                <th className="sticky left-0 z-10 bg-surface px-4 py-2.5 font-medium">Habit</th>
+                <th className="px-3 py-2.5 font-medium">Category</th>
+                <th className="px-3 py-2.5 font-medium">Tags</th>
+                <th className="px-3 py-2.5 text-right font-medium">Streak</th>
+                <th className="px-3 py-2.5 text-right font-medium">Best</th>
+                <th className="px-3 py-2.5 text-right font-medium">30-day</th>
+                <th className="px-3 py-2.5 text-right font-medium">Total</th>
+                <th className="px-4 py-2.5 text-right font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {list.map((h) => {
+                const s = stats[h.id];
+                const c = h.categoryId ? catById.get(h.categoryId) : undefined;
+                const pos = active.findIndex((a) => a.id === h.id);
+                return (
+                  <tr key={h.id} className="group hover:bg-surface-2/50">
+                    <td className="sticky left-0 z-10 bg-surface px-4 py-2.5 group-hover:bg-surface-2">
+                      <div className="flex items-center gap-3">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: h.color }}>
+                          <Icon name={h.icon} className="size-4" />
+                        </span>
+                        <div className="min-w-0 max-w-56">
+                          <Link href={`/habits/${h.id}`} className="block truncate font-medium hover:underline">
+                            {h.title}
+                          </Link>
+                          <p className="flex items-center gap-1.5 truncate text-xs text-text-3">
+                            {frequencyLabel(h)}
+                            {h.type === "count" && ` · ${h.target} ${h.unit ?? ""}`}
+                            {h.reminderTime && (
+                              <span className="inline-flex items-center gap-0.5">
+                                · <Bell className="size-3" aria-label="Reminder" /> {h.reminderTime}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {c ? (
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-text-2">
+                          <span className="size-2 rounded-full" style={{ background: c.color }} aria-hidden />
+                          {c.name}
+                        </span>
+                      ) : (
+                        <span className="text-text-3">–</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {h.tags.length ? (
+                        <div className="flex flex-wrap gap-1 text-xs">
+                          {h.tags.map((t) => (
+                            <span key={t} className="rounded-md bg-surface-2 px-2 py-0.5 text-text-2">
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-text-3">–</span>
+                      )}
+                    </td>
+                    <td className="tabular px-3 py-2.5 text-right">
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        {s.streak > 0 && <Flame className="size-3.5 text-warn" aria-hidden />}
+                        {s.streak}
+                        <span className="font-normal text-text-3">{s.unit === "weeks" ? "w" : "d"}</span>
+                      </span>
+                    </td>
+                    <td className="tabular px-3 py-2.5 text-right text-text-2">
+                      {s.best}
+                      <span className="text-text-3">{s.unit === "weeks" ? "w" : "d"}</span>
+                    </td>
+                    <td className="tabular px-3 py-2.5 text-right">{s.rate === null ? "–" : `${Math.round(s.rate * 100)}%`}</td>
+                    <td className="tabular px-3 py-2.5 text-right">{s.total}</td>
+                    <td className="px-4 py-1.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {canReorder && (
+                          <>
+                            <button onClick={() => move(h.id, -1)} disabled={pos === 0} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move up" title="Move up">
+                              <ArrowUp className="size-4" />
+                            </button>
+                            <button onClick={() => move(h.id, 1)} disabled={pos === active.length - 1} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2 disabled:opacity-30" aria-label="Move down" title="Move down">
+                              <ArrowDown className="size-4" />
+                            </button>
+                          </>
+                        )}
+                        <button onClick={() => setEditing(h)} className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2" aria-label="Edit" title="Edit">
+                          <Pencil className="size-4" />
+                        </button>
+                        <button
+                          onClick={() => start(() => setHabitArchived(h.id, !h.archived))}
+                          className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-text active:bg-surface-2"
+                          aria-label={h.archived ? "Restore" : "Archive"}
+                          title={h.archived ? "Restore" : "Archive"}
+                        >
+                          {h.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+                        </button>
+                        {h.archived && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Permanently delete "${h.title}" and all its history?`)) start(() => deleteHabit(h.id));
+                            }}
+                            className="flex size-8 items-center justify-center rounded-md text-text-3 hover:text-bad active:bg-surface-2"
+                            aria-label="Delete"
+                            title="Delete"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

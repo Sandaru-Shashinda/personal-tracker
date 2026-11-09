@@ -179,6 +179,31 @@ export const workoutSets = pgTable(
   (t) => [index("workout_sets_user_date_idx").on(t.userId, t.date), index("workout_sets_user_ex_idx").on(t.userId, t.exerciseId)],
 );
 
+/**
+ * The user's chosen exercises, shown as a daily checklist. Ticking one logs `sets` rows of
+ * `reps × weight` into workout_sets, so "done on a day" = that exercise has sets on that date.
+ */
+export const gymPlan = pgTable(
+  "gym_plan",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    exerciseId: text("exercise_id").notNull(),
+    exerciseName: text("exercise_name").notNull(),
+    sets: integer("sets").notNull().default(3),
+    reps: integer("reps"),
+    weight: real("weight"), // kg; null = bodyweight
+    durationSec: integer("duration_sec"), // for timed exercises (cardio, stretching)
+    daysOfWeek: integer("days_of_week")
+      .array()
+      .notNull()
+      .default(sql`'{0,1,2,3,4,5,6}'::integer[]`),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("gym_plan_user_idx").on(t.userId), uniqueIndex("gym_plan_user_ex_uq").on(t.userId, t.exerciseId)],
+);
+
 // --- Personal info & documents ------------------------------------------------------------------
 export const personalProfiles = pgTable("personal_profiles", {
   userId: uuid("user_id")
@@ -360,6 +385,7 @@ export type HabitLog = typeof habitLogs.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type WorkoutSet = typeof workoutSets.$inferSelect;
+export type GymPlanItem = typeof gymPlan.$inferSelect;
 export type DocumentMeta = Omit<typeof documents.$inferSelect, "content" | "userId">;
 export type Note = typeof notes.$inferSelect;
 export type TodoList = typeof todoLists.$inferSelect;

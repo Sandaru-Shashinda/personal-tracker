@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Dumbbell, History, Plus, Search, Trash2, TrendingDown, TrendingUp, Trophy } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Dumbbell, History, Plus, Search, Trash2, TrendingDown, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -21,6 +21,7 @@ import {
   type MuscleGroup,
 } from "@/lib/gym/groups";
 import { weekChange, weeklyStats, type WeekStat } from "@/lib/gym/weekly";
+import { PlanConsistency, PlanTab, type PlanItem } from "./plan-tab";
 
 export type SetRow = {
   id: string;
@@ -32,7 +33,7 @@ export type SetRow = {
   durationSec: number | null;
 };
 
-type Tab = "workout" | "exercises" | "progress";
+type Tab = "today" | "workout" | "exercises" | "progress";
 
 export const fmtKg = (n: number) => `${Math.round(n * 10) / 10} kg`;
 export const fmtDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
@@ -46,15 +47,17 @@ export function setLabel(s: Pick<SetRow, "reps" | "weight" | "durationSec">) {
 export function GymView({
   exercises,
   sets,
+  plan,
   today,
   weekStartsOn,
 }: {
   exercises: ExerciseLite[];
   sets: SetRow[];
+  plan: PlanItem[];
   today: string;
   weekStartsOn: number;
 }) {
-  const [tab, setTab] = useState<Tab>("workout");
+  const [tab, setTab] = useState<Tab>("today");
   const [date, setDate] = useState(today);
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises]);
   const trainedToday = sets.some((s) => s.date === today);
@@ -68,7 +71,8 @@ export function GymView({
           <div className="flex w-full rounded-xl border border-border bg-surface-2 p-1 text-sm sm:inline-flex sm:w-auto sm:rounded-lg sm:p-0.5" role="tablist">
             {(
               [
-                ["workout", "Workout"],
+                ["today", "Today"],
+                ["workout", "Log"],
                 ["exercises", "Exercises"],
                 ["progress", "Progress"],
               ] as const
@@ -86,6 +90,19 @@ export function GymView({
           </div>
         }
       />
+      {tab === "today" && (
+        <PlanTab
+          key={date}
+          date={date}
+          setDate={setDate}
+          today={today}
+          sets={sets}
+          plan={plan}
+          byId={byId}
+          exercises={exercises}
+          weekStartsOn={weekStartsOn}
+        />
+      )}
       {tab === "workout" && (
         <WorkoutTab
           key={date}
@@ -100,6 +117,7 @@ export function GymView({
       {tab === "exercises" && <ExercisesTab exercises={exercises} />}
       {tab === "progress" && (
         <ProgressTab
+          plan={plan}
           sets={sets}
           byId={byId}
           today={today}
@@ -214,7 +232,7 @@ function WorkoutTab({
   );
 }
 
-function lastSession(sets: SetRow[], exerciseId: string, before: string) {
+export function lastSession(sets: SetRow[], exerciseId: string, before: string) {
   let d: string | null = null;
   for (let i = sets.length - 1; i >= 0; i--) {
     const s = sets[i];
@@ -235,7 +253,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function GroupBadge({ group }: { group?: MuscleGroup }) {
+export function GroupBadge({ group }: { group?: MuscleGroup }) {
   if (!group) return null;
   return (
     <span
@@ -463,14 +481,20 @@ function GroupChips({
   );
 }
 
-function ExercisePicker({
+export function ExercisePicker({
   exercises,
   recentIds,
   onPick,
+  selected,
+  disabled,
 }: {
   exercises: ExerciseLite[];
   recentIds: string[];
   onPick: (id: string) => void;
+  /** Multi-select mode: picked ids get a tick instead of closing the picker. */
+  selected?: string[];
+  /** Ids that can't be picked again (e.g. already in the plan). */
+  disabled?: Set<string>;
 }) {
   const f = useFilteredExercises(exercises);
   const [initial] = useState(recentIds.length ? "recent" : "all");
@@ -505,20 +529,43 @@ function ExercisePicker({
         extra={recent.length ? [{ key: "recent", label: "Recent" }] : undefined}
       />
       <ul className="max-h-[55dvh] divide-y divide-border overflow-y-auto rounded-xl border border-border">
-        {shown.map((e) => (
-          <li key={e.id}>
-            <button onClick={() => onPick(e.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-2">
-              <ExerciseAnim id={e.id} name={e.name} img={e.img} animate={false} className="w-16 shrink-0 rounded-lg" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{e.name}</span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-xs text-text-3">
-                  <GroupBadge group={groupOf(e)} /> {capitalize(e.equipment)}
+        {shown.map((e) => {
+          const off = disabled?.has(e.id);
+          const on = selected?.includes(e.id);
+          return (
+            <li key={e.id}>
+              <button
+                onClick={() => onPick(e.id)}
+                disabled={off}
+                aria-pressed={selected ? on : undefined}
+                className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-2 disabled:opacity-50 disabled:hover:bg-transparent", on && "bg-accent/10")}
+              >
+                <ExerciseAnim id={e.id} name={e.name} img={e.img} animate={false} className="w-16 shrink-0 rounded-lg" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{e.name}</span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-xs text-text-3">
+                    <GroupBadge group={groupOf(e)} /> {capitalize(e.equipment)}
+                  </span>
                 </span>
-              </span>
-              <Plus className="size-4 text-text-3" aria-hidden />
-            </button>
-          </li>
-        ))}
+                {off ? (
+                  <span className="text-xs text-text-3">In plan</span>
+                ) : selected ? (
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-full border-2",
+                      on ? "border-accent bg-accent text-accent-fg" : "border-border",
+                    )}
+                    aria-hidden
+                  >
+                    {on && <Check className="size-3.5" strokeWidth={3} />}
+                  </span>
+                ) : (
+                  <Plus className="size-4 text-text-3" aria-hidden />
+                )}
+              </button>
+            </li>
+          );
+        })}
         {shown.length === 0 && <li className="px-3 py-8 text-center text-sm text-text-3">No exercises match.</li>}
       </ul>
       {list.length > shown.length && (
@@ -774,12 +821,14 @@ function WeekCell({ w, delta }: { w: WeekStat; delta: number | null }) {
 /* ------------------------------------------------------------------ Progress */
 
 function ProgressTab({
+  plan,
   sets,
   byId,
   today,
   weekStartsOn,
   openDay,
 }: {
+  plan: PlanItem[];
   sets: SetRow[];
   byId: Map<string, ExerciseLite>;
   today: string;
@@ -852,6 +901,8 @@ function ProgressTab({
         <Stat label="Sets (30 days)" value={String(stats.monthSets)} />
         <Stat label="Volume (30 days)" value={stats.monthVolume ? fmtVolume(stats.monthVolume) : "–"} />
       </div>
+
+      {plan.length > 0 && <PlanConsistency plan={plan} sets={sets} byId={byId} today={today} />}
 
       <WeeklyWeights sets={sets} byId={byId} today={today} weekStartsOn={weekStartsOn} />
 
