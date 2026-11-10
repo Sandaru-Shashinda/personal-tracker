@@ -44,3 +44,59 @@ export function formatMoney(amount: number, currency: string, opts: { compact?: 
     return `${currency} ${amount.toFixed(2)}`;
   }
 }
+
+// --- Accounts, transfers, lending & borrowing ------------------------------------------------
+
+export const ACCOUNT_TYPES = [
+  { id: "cash", label: "Cash", color: "#1baf7a" },
+  { id: "bank", label: "Bank account", color: "#2a78d6" },
+  { id: "savings", label: "Savings", color: "#6250d6" },
+  { id: "wallet", label: "Mobile wallet", color: "#0ea5e9" },
+  { id: "investment", label: "Investment", color: "#a16207" },
+  { id: "other", label: "Other", color: "#64748b" },
+] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number]["id"];
+export const accountTypeOf = (id: string) => ACCOUNT_TYPES.find((t) => t.id === id) ?? ACCOUNT_TYPES[ACCOUNT_TYPES.length - 1];
+
+export type DebtDirection = "lent" | "borrowed";
+export type DebtEntryKind = "add" | "repay";
+
+/**
+ * How a debt entry moves cash in the linked account: lending or repaying a debt takes money out,
+ * borrowing or being repaid brings it in.
+ */
+export function debtCashFlow(direction: string, kind: string, amount: number) {
+  const inflow = (direction === "borrowed") === (kind === "add");
+  return inflow ? amount : -amount;
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+type Flowish = { accountId: string | null; amount: number };
+
+/** Net change per account from its linked transactions, debt entries and transfers. */
+export function accountFlows(input: {
+  expenses: (Flowish & { kind: string })[];
+  debtEntries: (Flowish & { debtId: string; kind: string })[];
+  debts: { id: string; direction: string }[];
+  transfers: { fromAccountId: string | null; toAccountId: string | null; amount: number }[];
+}) {
+  const flow = new Map<string, number>();
+  const add = (id: string | null, n: number) => id && flow.set(id, (flow.get(id) ?? 0) + n);
+  for (const e of input.expenses) add(e.accountId, e.kind === "income" ? e.amount : -e.amount);
+  const dir = new Map(input.debts.map((d) => [d.id, d.direction]));
+  for (const e of input.debtEntries) add(e.accountId, debtCashFlow(dir.get(e.debtId) ?? "lent", e.kind, e.amount));
+  for (const t of input.transfers) {
+    add(t.fromAccountId, -t.amount);
+    add(t.toAccountId, t.amount);
+  }
+  for (const [k, v] of flow) flow.set(k, round2(v));
+  return flow;
+}
+
+/** Outstanding amount per debt: everything added minus everything repaid. */
+export function debtBalances(entries: { debtId: string; kind: string; amount: number }[]) {
+  const out = new Map<string, number>();
+  for (const e of entries) out.set(e.debtId, round2((out.get(e.debtId) ?? 0) + (e.kind === "repay" ? -e.amount : e.amount)));
+  return out;
+}

@@ -276,20 +276,88 @@ export const todoItems = pgTable(
 );
 
 // --- Expenses ----------------------------------------------------------------------------------
+const money = (name: string) => numeric(name, { precision: 14, scale: 2, mode: "number" });
+
+/** Where money is kept (cash, bank, savings…). Balance = opening balance + linked activity. */
+export const moneyAccounts = pgTable(
+  "money_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    name: text("name").notNull(),
+    type: text("type").notNull().default("bank"), // see ACCOUNT_TYPES in lib/expenses
+    openingBalance: money("opening_balance").notNull().default(0),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index("money_accounts_user_idx").on(t.userId)],
+);
+
 export const expenses = pgTable(
   "expenses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: userRef(),
     kind: text("kind").notNull().default("expense"), // "expense" | "income"
-    amount: numeric("amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
+    amount: money("amount").notNull(),
     category: text("category").notNull(),
     note: text("note"),
     method: text("method"), // cash, card, bank, other
+    accountId: uuid("account_id").references(() => moneyAccounts.id, { onDelete: "set null" }),
     date: date("date").notNull(),
     createdAt: createdAt(),
   },
   (t) => [index("expenses_user_date_idx").on(t.userId, t.date)],
+);
+
+/** Money moved between two of the user's accounts (e.g. into savings). */
+export const accountTransfers = pgTable(
+  "account_transfers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    fromAccountId: uuid("from_account_id").references(() => moneyAccounts.id, { onDelete: "set null" }),
+    toAccountId: uuid("to_account_id").references(() => moneyAccounts.id, { onDelete: "set null" }),
+    amount: money("amount").notNull(),
+    date: date("date").notNull(),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("account_transfers_user_idx").on(t.userId)],
+);
+
+/** A running balance with one person: money lent to them, or borrowed from them. */
+export const debts = pgTable(
+  "debts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    person: text("person").notNull(),
+    direction: text("direction").notNull(), // "lent" (they owe me) | "borrowed" (I owe them)
+    note: text("note"),
+    dueDate: date("due_date"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("debts_user_idx").on(t.userId)],
+);
+
+/** "add" grows the debt (lend/borrow more), "repay" shrinks it. accountId = where the cash moved. */
+export const debtEntries = pgTable(
+  "debt_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    debtId: uuid("debt_id")
+      .notNull()
+      .references(() => debts.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // "add" | "repay"
+    amount: money("amount").notNull(),
+    date: date("date").notNull(),
+    accountId: uuid("account_id").references(() => moneyAccounts.id, { onDelete: "set null" }),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("debt_entries_user_idx").on(t.userId), index("debt_entries_debt_idx").on(t.debtId)],
 );
 
 export const budgets = pgTable(
@@ -298,7 +366,7 @@ export const budgets = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     userId: userRef(),
     category: text("category").notNull(), // "" = overall monthly budget
-    amount: numeric("amount", { precision: 14, scale: 2, mode: "number" }).notNull(),
+    amount: money("amount").notNull(),
   },
   (t) => [uniqueIndex("budgets_user_category_uq").on(t.userId, t.category)],
 );
@@ -392,6 +460,10 @@ export type TodoList = typeof todoLists.$inferSelect;
 export type TodoItem = typeof todoItems.$inferSelect;
 export type Expense = typeof expenses.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
+export type MoneyAccount = typeof moneyAccounts.$inferSelect;
+export type AccountTransfer = typeof accountTransfers.$inferSelect;
+export type Debt = typeof debts.$inferSelect;
+export type DebtEntry = typeof debtEntries.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalMilestone = typeof goalMilestones.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;

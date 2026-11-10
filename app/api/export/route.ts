@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  accountTransfers,
   budgets,
+  debtEntries,
+  debts,
+  moneyAccounts,
   categories,
   db,
   documents,
@@ -84,7 +88,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const [sets, noteRows, lists, items, money, budgetRows, goalRows, milestones, profile, docs, reminderRows] = await Promise.all([
+  const [sets, noteRows, lists, items, money, budgetRows, goalRows, milestones, profile, docs, reminderRows, accountRows, transferRows, debtRows, debtEntryRows] = await Promise.all([
     db.select().from(workoutSets).where(eq(workoutSets.userId, userId)),
     db.select().from(notes).where(eq(notes.userId, userId)),
     db.select().from(todoLists).where(eq(todoLists.userId, userId)),
@@ -110,6 +114,10 @@ export async function GET(req: NextRequest) {
       .from(documents)
       .where(eq(documents.userId, userId)),
     db.select().from(reminders).where(eq(reminders.userId, userId)),
+    db.select().from(moneyAccounts).where(eq(moneyAccounts.userId, userId)),
+    db.select().from(accountTransfers).where(eq(accountTransfers.userId, userId)),
+    db.select().from(debts).where(eq(debts.userId, userId)),
+    db.select().from(debtEntries).where(eq(debtEntries.userId, userId)),
   ]);
 
   const body = JSON.stringify(
@@ -127,6 +135,10 @@ export async function GET(req: NextRequest) {
       todoItems: items,
       expenses: money,
       budgets: budgetRows,
+      accounts: accountRows,
+      accountTransfers: transferRows,
+      debts: debtRows,
+      debtEntries: debtEntryRows,
       goals: goalRows,
       goalMilestones: milestones,
       personal: profile[0]?.data ?? null,

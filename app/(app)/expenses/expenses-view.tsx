@@ -1,14 +1,14 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, PiggyBank, Plus, Search, Target, Wallet } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { ChevronLeft, ChevronRight, PiggyBank, Plus, Scale, Search, Target, Wallet, X } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/toast";
 import { Button, Card, CardTitle, cn, Empty, Input, Label, Modal, Select, Fab } from "@/components/ui";
 import { deleteExpense, saveExpense, setBudget, setCurrency } from "@/lib/actions/expenses";
 import { relativeDayLabel } from "@/lib/dates";
-import type { Budget, Expense } from "@/lib/db/schema";
+import type { AccountTransfer, Budget, Debt, DebtEntry, Expense, MoneyAccount } from "@/lib/db/schema";
 import {
   categoryColor,
   CURRENCIES,
@@ -17,6 +17,7 @@ import {
   INCOME_CATEGORIES,
   PAYMENT_METHODS,
 } from "@/lib/expenses";
+import { AccountSelect, BalancesView } from "./balances-view";
 
 const monthOf = (d: string) => d.slice(0, 7);
 function shiftMonth(m: string, n: number) {
@@ -31,14 +32,32 @@ const daysInMonth = (m: string) => {
   return new Date(Date.UTC(y, mo, 0)).getUTCDate();
 };
 
+const SETUP_KEY = "pt-balances-setup-dismissed";
+const noopSubscribe = () => () => {};
+function readSetupDismissed() {
+  try {
+    return localStorage.getItem(SETUP_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function ExpensesView({
   expenses,
   budgets,
+  accounts,
+  transfers,
+  debts,
+  debtEntries,
   currency,
   today,
 }: {
   expenses: Expense[];
   budgets: Budget[];
+  accounts: MoneyAccount[];
+  transfers: AccountTransfer[];
+  debts: Debt[];
+  debtEntries: DebtEntry[];
   currency: string;
   today: string;
 }) {
@@ -52,6 +71,16 @@ export function ExpensesView({
   const [cat, setCat] = useState("");
   const [q, setQ] = useState("");
   const money = (n: number, compact = false) => formatMoney(n, currency, { compact });
+  const [tab, setTab] = useState<"spending" | "balances">("spending");
+  const [dismissedNow, setDismissedNow] = useState(false);
+  const dismissedStored = useSyncExternalStore(noopSubscribe, readSetupDismissed, () => true);
+  const setupDismissed = dismissedNow || dismissedStored;
+  const activeAccounts = accounts.filter((a) => !a.archived);
+  const accountName = new Map(accounts.map((a) => [a.id, a.name]));
+  // New transactions default to the account used last (or the only one there is).
+  const lastUsed = expenses.find((e) => e.accountId && activeAccounts.some((a) => a.id === e.accountId))?.accountId ?? null;
+  const defaultAccountId = lastUsed ?? (activeAccounts.length === 1 ? activeAccounts[0].id : null);
+  const needsSetup = accounts.length === 0 && debts.length === 0;
 
   const inMonth = expenses.filter((e) => monthOf(e.date) === month);
   const spent = inMonth.filter((e) => e.kind === "expense").reduce((s, e) => s + e.amount, 0);
@@ -123,16 +152,72 @@ export function ExpensesView({
                 <option key={c}>{c}</option>
               ))}
             </Select>
-            <Button onClick={() => setBudgetOpen(true)}>
-              <Target className="size-4" /> Budgets
-            </Button>
-            <Button variant="primary" onClick={() => setEditing("new")} className="max-md:hidden">
-              <Plus className="size-4" /> Add
-            </Button>
+            {tab === "spending" && (
+              <>
+                <Button onClick={() => setBudgetOpen(true)}>
+                  <Target className="size-4" /> Budgets
+                </Button>
+                <Button variant="primary" onClick={() => setEditing("new")} className="max-md:hidden">
+                  <Plus className="size-4" /> Add
+                </Button>
+              </>
+            )}
           </div>
         }
       />
 
+      <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-surface-2 p-1 sm:w-80" role="tablist">
+        {(["spending", "balances"] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={cn("rounded-lg py-1.5 text-sm", tab === t ? "bg-surface font-medium shadow-sm" : "text-text-2")}
+          >
+            {t === "spending" ? "Spending" : "Balances & debts"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "balances" ? (
+        <BalancesView
+          accounts={accounts}
+          transfers={transfers}
+          debts={debts}
+          debtEntries={debtEntries}
+          expenses={expenses}
+          currency={currency}
+          today={today}
+          defaultAccountId={defaultAccountId}
+        />
+      ) : (
+      <>
+      {needsSetup && !setupDismissed && (
+        <div className="flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4">
+          <Scale className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Get the full picture</p>
+            <p className="text-sm text-text-2">Add what&apos;s in your savings, who owes you money, and what you owe.</p>
+            <Button size="sm" variant="primary" className="mt-2" onClick={() => setTab("balances")}>
+              Set up balances
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Dismiss"
+            onClick={() => {
+              setDismissedNow(true);
+              try {
+                localStorage.setItem(SETUP_KEY, "1");
+              } catch {}
+            }}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
           <ChevronLeft className="size-4" />
@@ -337,6 +422,7 @@ export function ExpensesView({
                               <span className="block truncate text-xs text-text-3">
                                 {e.category}
                                 {e.method ? ` · ${e.method}` : ""}
+                                {e.accountId && accountName.has(e.accountId) ? ` · ${accountName.get(e.accountId)}` : ""}
                               </span>
                             </span>
                             <span className={cn("tabular text-sm font-semibold", e.kind === "income" && "text-good")}>
@@ -356,6 +442,8 @@ export function ExpensesView({
       )}
 
       <Fab label="Add transaction" onClick={() => setEditing("new")} />
+      </>
+      )}
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing === "new" ? "Add transaction" : "Edit transaction"}>
         {editing && (
           <ExpenseForm
@@ -363,6 +451,8 @@ export function ExpensesView({
             defaultDate={month === thisMonth ? today : `${month}-01`}
             today={today}
             currency={currency}
+            accounts={accounts}
+            defaultAccountId={defaultAccountId}
             onDone={() => setEditing(null)}
             onDelete={(id) =>
               start(async () => {
@@ -398,6 +488,8 @@ function ExpenseForm({
   defaultDate,
   today,
   currency,
+  accounts,
+  defaultAccountId,
   onDone,
   onDelete,
 }: {
@@ -405,6 +497,8 @@ function ExpenseForm({
   defaultDate: string;
   today: string;
   currency: string;
+  accounts: MoneyAccount[];
+  defaultAccountId: string | null;
   onDone: () => void;
   onDelete: (id: string) => void;
 }) {
@@ -416,6 +510,7 @@ function ExpenseForm({
   const [note, setNote] = useState(expense?.note ?? "");
   const [method, setMethod] = useState(expense?.method ?? "");
   const [date, setDate] = useState(expense?.date ?? defaultDate);
+  const [accountId, setAccountId] = useState(expense ? (expense.accountId ?? "") : (defaultAccountId ?? ""));
   const [error, setError] = useState<string | null>(null);
   const cats = kind === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
@@ -431,6 +526,7 @@ function ExpenseForm({
             category,
             note: note || null,
             method: method || null,
+            accountId: accountId || null,
             date,
           });
           if (!res.ok) return setError(res.error);
@@ -507,6 +603,12 @@ function ExpenseForm({
           </Select>
         </label>
       </div>
+      {accounts.length > 0 && (
+        <label className="block">
+          <Label hint="updates its balance">{kind === "expense" ? "Paid from account" : "Received into account"}</Label>
+          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} />
+        </label>
+      )}
       <label className="block">
         <Label hint="optional">Note</Label>
         <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Lunch with team" maxLength={300} />
